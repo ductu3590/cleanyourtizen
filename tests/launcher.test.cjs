@@ -123,3 +123,24 @@ test('launcher refreshes the date and wallpaper on launch, resume and every key 
   assert.match(app, /else \{ tick\(\);/);
   assert.match(app, /addEventListener\('keydown', function \(event\) \{\s*var key = event\.key;\s*clock\(\); wallpaper\(\);/);
 });
+test('a chosen wallpaper wins over the daily one; unknown or unsafe choices fall back to daily', () => {
+  const names = ['a.jpg', 'b.jpg', 'c.png'];
+  const day = new Date(2026, 9, 26, 9);
+  const daily = core.wallpaperFor(names, day);
+  assert.equal(core.wallpaperFor(names, day, 'b.jpg'), 'wallpapers/b.jpg');
+  assert.equal(core.wallpaperFor(names, new Date(2030, 1, 1), 'c.png'), 'wallpapers/c.png');
+  for (const bad of ['auto', 'gone.jpg', '../a.jpg', '', null, undefined, 7, {}]) {
+    assert.equal(core.wallpaperFor(names, day, bad), daily);
+  }
+});
+test('wallpaper picker previews on focus, saves only on OK and restores on Back', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '../launcher/index.html'), 'utf8');
+  assert.ok(html.includes('id="picker"') && html.includes('id="picker-grid"'));
+  assert.match(app, /addEventListener\('focus', function \(\) \{ applyWallpaper\(option\.url\); \}\)/);
+  assert.match(app, /localStorage\.setItem\('cyt-wallpaper', preference\)/);
+  assert.ok(app.indexOf('else if (picking) pickerBack()') > app.indexOf('if (videoOn) leaveVideo()'));
+  assert.ok(app.indexOf('else if (picking) pickerBack()') < app.indexOf('else if (!panel.hidden) closePanel()'));
+  assert.match(app, /function wallpaper\(\) \{\s*if \(picking\) return;/);
+  assert.ok(!app.includes('innerHTML'));
+});

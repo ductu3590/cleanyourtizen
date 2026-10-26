@@ -7,7 +7,9 @@
   var pill = [$('btn-input'), $('btn-wifi'), $('btn-settings')];
   var CAPTIONS = {input: 'Nguồn vào', wifi: 'Wi-Fi', settings: 'Cài đặt'};
   var MAIN_RECT = ['0px', '0px', '1920px', '1080px'];
-  var timer, saved = [], openMenu = null, videoOn = false, clockTimer = null;
+  var timer, saved = [], openMenu = null, videoOn = false, clockTimer = null, picking = false, pickerBack = null;
+  var preference = 'auto';
+  try { preference = localStorage.getItem('cyt-wallpaper') || 'auto'; } catch (error) { preference = 'auto'; }
   try { saved = JSON.parse(localStorage.getItem('cyt-order') || '[]'); } catch (error) { saved = []; }
   var apps = core.orderApps(config.apps || [], saved);
 
@@ -138,6 +140,9 @@
         try { audio().setMute(!muted()); muteRow.value.textContent = muted() ? 'Bật' : 'Tắt'; }
         catch (error) { announce('Không điều khiển được âm thanh.'); }
       });
+      if ((config.wallpapers || []).length) {
+        row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
+      }
       row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
       row('Samsung Home', '↗', returnHome);
     });
@@ -213,6 +218,7 @@
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
+      else if (picking) pickerBack();
       else if (!panel.hidden) closePanel();
       else if (openMenu) closeMenu();
       else returnHome();
@@ -224,6 +230,14 @@
     }
     if (key.indexOf('Arrow') !== 0) return;
     event.preventDefault();
+    if (picking) {
+      var thumbs = Array.prototype.slice.call($('picker-grid').children), lines = [];
+      for (var from = 0; from < thumbs.length; from += 5) lines.push(thumbs.slice(from, from + 5));
+      var here = {row: 0, col: 0};
+      lines.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) here = {row: rowIndex, col: col}; });
+      var moved = core.nextFocus(lines, here, key); lines[moved.row][moved.col].focus();
+      return;
+    }
     if (openMenu) {
       var rows = Array.prototype.slice.call(menuItems.children), at = rows.indexOf(document.activeElement);
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
@@ -250,12 +264,50 @@
     else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
   });
   var shownWallpaper = null;
-  function wallpaper() {
-    var url = core.wallpaperFor(config.wallpapers, new Date());
+  function applyWallpaper(url) {
     if (!url || url === shownWallpaper) return;
     shownWallpaper = url;
     document.body.style.backgroundImage = 'url("' + url + '")';
     document.body.classList.add('has-wallpaper');
+  }
+  function wallpaper() {
+    if (picking) return;
+    applyWallpaper(core.wallpaperFor(config.wallpapers, new Date(), preference));
+  }
+  function wallpaperName(value) {
+    var index = (config.wallpapers || []).indexOf(value);
+    return index >= 0 ? 'Hình ' + (index + 1) : 'Tự động';
+  }
+  function closePicker() {
+    picking = false; $('picker').hidden = true; document.body.classList.remove('picking');
+    $('btn-settings').focus();
+  }
+  function openPicker() {
+    var names = config.wallpapers || [], grid = $('picker-grid'), previous = shownWallpaper;
+    var options = [{value: 'auto', tag: 'Tự động mỗi ngày', url: core.wallpaperFor(names, new Date(), 'auto')}];
+    names.forEach(function (name, index) { options.push({value: name, tag: 'Hình ' + (index + 1), url: core.wallpaperFor(names, new Date(), name)}); });
+    var current = names.indexOf(preference) >= 0 ? preference : 'auto', focusTarget = null;
+    grid.textContent = '';
+    options.forEach(function (option) {
+      var button = document.createElement('button'); button.className = 'thumb'; button.setAttribute('role', 'option');
+      button.style.backgroundImage = 'url("' + option.url + '")';
+      var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = option.tag; button.appendChild(tag);
+      if (option.value === current) {
+        var check = document.createElement('span'); check.className = 'check'; check.textContent = '✓'; button.appendChild(check);
+        focusTarget = button;
+      }
+      button.addEventListener('focus', function () { applyWallpaper(option.url); });
+      button.addEventListener('click', function () {
+        preference = option.value;
+        try { localStorage.setItem('cyt-wallpaper', preference); }
+        catch (error) { announce('Không lưu được hình nền. Lựa chọn chỉ có hiệu lực trong phiên này.'); }
+        closePicker(); wallpaper();
+      });
+      grid.appendChild(button);
+    });
+    pickerBack = function () { picking = false; applyWallpaper(previous); closePicker(); };
+    picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
+    (focusTarget || grid.firstChild).focus();
   }
   function tick() { clock(); readWifi(); wallpaper(); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);

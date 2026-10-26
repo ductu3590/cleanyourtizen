@@ -63,5 +63,14 @@ body.menu-open .clockblock{opacity:.4}
 .arrange{display:grid;gap:20px}.arrange button{text-align:left;font-size:24px}
 #message{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);padding:22px 35px;border:1px solid rgba(255,255,255,.3);border-radius:20px;background:rgba(32,45,64,.92);box-shadow:0 15px 60px rgba(0,0,0,.5);max-width:80%;font-size:20px;z-index:10}
 
-@media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.symbol{font-size:44px}}
+body.picking .dock,body.picking .clockblock{display:none}
+.picker{position:absolute;left:94px;right:94px;bottom:70px;padding:26px 28px 20px;border-radius:34px;z-index:6}
+.picker h2{margin:0 4px 18px;font-size:22px;font-weight:600;color:rgba(255,255,255,.85)}
+.picker-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
+.thumb{position:relative;height:150px;border-radius:18px;background-color:#1c2540;background-size:cover;background-position:center;box-shadow:0 8px 18px rgba(0,0,0,.35);transition:transform .15s ease}
+.thumb:focus{outline:none;transform:scale(1.05);box-shadow:0 0 0 5px rgba(255,255,255,.95),0 16px 30px rgba(0,0,0,.5)}
+.thumb .tag{position:absolute;left:10px;bottom:10px;padding:5px 12px;border-radius:12px;font-size:16px;background:rgba(8,12,26,.62)}
+.thumb .check{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;background:#46d17c;color:#06210f;font-weight:700;font-size:19px;line-height:30px;text-align:center}
+.picker-hint{margin:16px 4px 0;font-size:16px;color:rgba(255,255,255,.65)}
+@media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

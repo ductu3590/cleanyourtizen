@@ -63,11 +63,12 @@
     if (key === 'ArrowRight') current += delta;
     return Math.max(0, Math.min(100, current));
   }
-  function wallpaperFor(names, date) {
+  function wallpaperFor(names, date, preferred) {
     var list = (Array.isArray(names) ? names : []).filter(function (name) {
       return typeof name === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\.(jpe?g|png)$/i.test(name);
     });
     if (!list.length) return null;
+    if (typeof preferred === 'string' && preferred !== 'auto' && list.indexOf(preferred) >= 0) return 'wallpapers/' + preferred;
     var when = date instanceof Date && !isNaN(date) ? date : new Date();
     var day = Math.floor(Date.UTC(when.getFullYear(), when.getMonth(), when.getDate()) / 86400000);
     return 'wallpapers/' + list[((day % list.length) + list.length) % list.length];
