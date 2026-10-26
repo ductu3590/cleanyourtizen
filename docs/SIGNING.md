@@ -12,6 +12,10 @@ Keep your account password and verification codes in Samsung's login window, not
    certificate and its password securely; keep it for future updates of the same application.
 4. Create a **public-level distributor certificate** and include the connected TV's DUID through the
    device selector. DUID is not the model code or serial number. Do not publish it.
+   **A profile that lists only the TV's IP address is wrong.** Samsung's installer rejects it with
+   `Check certificate error: Invalid signature`. Keep the TV connected through SDB (`sdb devices`) so the
+   wizard can read the DUID, or paste the output of `sdb shell 0 getduid` into the DUID field.
+   To replace a distributor certificate, create a new profile that reuses the same author certificate.
 5. Permit application installation for the connected TV if Device Manager requests it.
 6. Build a launcher staging directory with `python -m cyt build`. In the official CLI, package/sign
    that directory with the saved profile. Typical syntax (confirm using your installed `tizen help package`):
@@ -20,6 +24,9 @@ Keep your account password and verification codes in Samsung's login window, not
    tizen package -t wgt -s YOUR_PROFILE -o .local/signed -- dist/launcher-v1
    ```
 
+   Install it with the official CLI, for example
+   `tizen install -n CleanYourTizen.wgt -s HOST:26101 -- .local/signed`. A plain `sdb install` can copy the
+   file and exit successfully without installing anything.
 7. Pass the resulting signed `.wgt` to `cyt install` with the matching private launcher JSON.
    The tool checks signature-file presence and manifest identity; Samsung's installer validates
    the actual certificate chain, target DUID and cryptographic signatures.

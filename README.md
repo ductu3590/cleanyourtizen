@@ -16,15 +16,29 @@ Not affiliated with Samsung or Apple. App names are their owners' trademarks; ti
 | Preview selected app removal | Offline plan; no default deletion set |
 | Uninstall reviewed user-facing packages | Explicit plan hash, data-loss acknowledgement, per-package verification |
 | Restore removed app data | **Not possible from an inventory.** Manual store reinstall only |
-| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS, D-pad, ordered shortcuts, Samsung Home escape |
+| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, Samsung Home escape |
 | Signed launcher installation | Requires your own Samsung certificates and signed WGT |
-| Replace physical Home / auto-start | **Not implemented.** Separate firmware-specific research |
+| Replace physical Home / Power / brand hotkeys | **Not possible for a normal app.** They are absent from the TV's supported keys; see [the device profile](profiles/qa55ls03b.json) |
 | Keep Art Mode | No Power/Home interception, no background auto-return; physical validation still required |
 | Every Samsung TV | **Not claimed.** Tizen only, capability-driven, exact-device evidence |
 
 Current device evidence is in [profiles/qa55ls03b.json](profiles/qa55ls03b.json).
 An inventory result is not evidence that uninstall, signatures, remote keys or startup work.
 Orsay TVs and commercial/hospitality displays are not covered by the initial profile.
+
+## What was verified on a real TV
+
+Evidence for one Vietnamese The Frame (QA55LS03BAKXXV, Tizen 6.5), recorded in [profiles/qa55ls03b.json](profiles/qa55ls03b.json):
+
+- A launcher signed with your own Samsung author and distributor certificates installs with `tizen install` and opens apps.
+- Input switching works: `tizen.tvwindow.setSource` with the instances returned by `systeminfo` `VIDEOSOURCE`,
+  shown through a transparent page. The TV supplies device names (for example a console or soundbar).
+- Wi-Fi name and signal come from `systeminfo` `WIFI_NETWORK`; volume and mute from `tizen.tvaudiocontrol`.
+- **Not possible from a web app on this TV:** opening Samsung's Settings, Network and Home Setting apps (`UnknownError`),
+  changing picture or sleep-timer settings, taking over Home, Power or the brand hotkeys,
+  and removing preinstalled apps (`can not uninstall app`, also with `vd_appuninstall`).
+
+Other models and firmware may differ. Treat these as observations, not guarantees.
 
 ## Requirements
 
@@ -81,18 +95,28 @@ There is no blind automatic retry or automatic factory reset. See [SAFETY](docs/
 npm run preview
 # Open http://127.0.0.1:4173 and use arrows, Enter, Escape.
 python -m cyt launcher-config --snapshot .local/before.json --apps ZTpEFWgfa9.FPTPlay IkWsFHtOY9.Stremio NuvioTV001.NuvioTV --out .local/launcher.json
-python -m cyt build --config .local/launcher.json --out dist/launcher-v1
+python -m cyt build --config .local/launcher.json --out dist/launcher-v1 --wallpapers .local/wallpapers
 ```
+
+Optional private settings in `.local/launcher.json`:
+
+- `"inputs": [{"type": "HDMI", "number": 4}]` lists the only inputs shown in the input menu. The TV supplies their names.
+- `--wallpapers DIR` bundles up to 60 `jpg`/`png` files (at most 2.5 MB each, 1920x1080 recommended).
+  One is shown per local day, in file-name order; Settings → Hình nền previews and saves a fixed choice.
 
 The build creates a staging directory and a deterministic **unsigned** WGT for inspection.
 It is deliberately refused by `cyt install`. Sign the staging directory with Samsung's official
-tools first: [certificate and signing guide](docs/SIGNING.md).
+tools first: [certificate and signing guide](docs/SIGNING.md). Then install the signed widget with the
+official `tizen install`; `cyt install` also works but only reports success when the app appears in the TV inventory.
 
 ```sh
 python -m cyt install --snapshot .local/before.json --config .local/launcher.json --widget .local/signed/launcher.wgt
 python -m cyt launch --snapshot .local/before.json --config .local/launcher.json
 python -m cyt home-status
 ```
+
+`tools/probe/` is a small on-device API probe (read-only except buttons you press). Build and sign it like the
+launcher with its own package ID, and remove it afterwards.
 
 Use a unique, stable 10-character alphanumeric package ID (`launcher-config --package`) and keep
 the same author certificate for updates. Default `CyTizen001` is a development identity, not a

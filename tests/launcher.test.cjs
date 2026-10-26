@@ -163,3 +163,12 @@ test('device profile records that the vendor vd_appuninstall command is also ref
   assert.match(profile.evidence.vdAppUninstall, /can not uninstall app/);
   assert.match(profile.evidence.vdAppUninstall, /no inventory change/);
 });
+test('documentation states the verified limits and the DUID signing requirement', () => {
+  const readme = fs.readFileSync(path.join(__dirname, '../README.md'), 'utf8');
+  const signing = fs.readFileSync(path.join(__dirname, '../docs/SIGNING.md'), 'utf8');
+  assert.match(readme, /What was verified on a real TV/);
+  assert.match(readme, /can not uninstall app/);
+  assert.match(readme, /--wallpapers/);
+  assert.match(signing, /lists only the TV's IP address is wrong/);
+  assert.match(signing, /sdb shell 0 getduid/);
+});
