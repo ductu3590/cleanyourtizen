@@ -117,3 +117,9 @@ test('wallpaper list ignores unsafe names and works with no list', () => {
   assert.equal(core.wallpaperFor(['../x.jpg', 'ok.JPG'], new Date(2026, 0, 1)), 'wallpapers/ok.JPG');
   assert.match(core.wallpaperFor(['ok.jpg'], 'not a date'), /^wallpapers\/ok\.jpg$/);
 });
+test('launcher refreshes the date and wallpaper on launch, resume and every key press', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  assert.match(app, /clock\(\); readWifi\(\); wallpaper\(\); clockTimer = setInterval\(tick/);
+  assert.match(app, /else \{ tick\(\);/);
+  assert.match(app, /addEventListener\('keydown', function \(event\) \{\s*var key = event\.key;\s*clock\(\); wallpaper\(\);/);
+});

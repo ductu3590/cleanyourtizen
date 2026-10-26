@@ -209,6 +209,7 @@
   }
   document.addEventListener('keydown', function (event) {
     var key = event.key;
+    clock(); wallpaper(); // Catch a missed resume event: the TV may wake with a stale date.
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
