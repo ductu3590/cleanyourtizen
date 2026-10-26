@@ -110,6 +110,21 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(core.Refused):
             core.make_plan(snap(), [], [], CATALOG)
 
+    def test_typo_in_retained_package_blocks_plan(self):
+        with self.assertRaises(core.Refused):
+            core.make_plan(snap(), ['HJCS8hkoCO'], ['NuvioTYPO1'], CATALOG)
+
+    def test_post_restart_inventory_verification(self):
+        value = plan()
+        remaining = [app for app in APPS if app['id'] != 'HJCS8hkoCO.TV360']
+        result = core.verify_plan_state(value, snap(), remaining, CATALOG)
+        self.assertTrue(result['inventoryMatchesPlan'])
+        self.assertEqual(result['physicalPlaybackAndArtMode'], 'not-tested-by-inventory')
+        with self.assertRaises(core.Refused):
+            core.verify_plan_state(value, snap(), APPS, CATALOG)
+        with self.assertRaises(core.Refused):
+            core.verify_plan_state(value, snap(), remaining[:-1], CATALOG)
+
     def test_retained_service_protects_whole_package(self):
         for keep in ('HJCS8hkoCO', 'HJCS8hkoCO.TV360'):
             with self.assertRaises(core.Refused):

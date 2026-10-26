@@ -65,6 +65,7 @@ login state. Retain paid activation information separately. Do not uninstall irr
 ```sh
 python -m cyt apply --snapshot .local/before.json --plan .local/plan.json --confirm FULL_HASH_PRINTED_IN_PLAN --allow-data-loss --journal .local/cleanup-journal.json
 python -m cyt recovery --journal .local/cleanup-journal.json
+python -m cyt verify --journal .local/cleanup-journal.json
 ```
 
 `apply` checks the catalog, complete plan, TV fingerprint, capabilities and original app inventory.
@@ -72,6 +73,7 @@ It records intent **before** each uninstall, runs one package at a time, then ch
 expected App IDs disappeared and no unrelated app changed. An `ok` response alone never counts.
 Any failure or drift stops the run; the journal remains. Existing snapshots/journals are never replaced.
 There is no blind automatic retry or automatic factory reset. See [SAFETY](docs/SAFETY.md).
+`verify` can be repeated after a user-controlled reboot; it checks exact app inventory, not playback or physical Art Mode.
 
 ## Launcher preview, build and install
 

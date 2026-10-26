@@ -78,6 +78,9 @@ def make_plan(snap, remove, keep, catalog):
         raise Refused('Select at least one package explicitly; there is no default deletion list')
     if any(not ID.fullmatch(item) for item in remove + keep):
         raise Refused('Invalid package or App ID')
+    installed = {app['id'] for app in snap['apps']}
+    if any(item not in installed and not any(app.startswith(item + '.') for app in installed) for item in keep):
+        raise Refused('A retained app/package is missing from the snapshot; check its exact ID')
     keep_packages = {item.split('.')[0] for item in keep}
     known = {entry['package']: entry for entry in catalog['removable']}
     entries = []
@@ -111,6 +114,17 @@ def verify_inventory(before, after, removed):
     expected = {app for app in before_ids if app.split('.')[0] == removed}
     if not expected or after_ids != before_ids - expected:
         raise Refused('Uninstall verification failed: unexpected app drift, incomplete removal or unrelated changes')
+
+
+def verify_plan_state(plan, snap, after, catalog):
+    check_plan(plan, snap, catalog)
+    expected = {app['id'] for app in snap['apps']}
+    removed = {app for entry in plan['remove'] for app in entry['appIds']}
+    if {app['id'] for app in after} != expected - removed:
+        raise Refused('Current inventory does not exactly match the reviewed cleanup plan')
+    return {'removedPackages': len(plan['remove']), 'removedAppIds': len(removed),
+            'retainedAppIds': len(expected - removed), 'inventoryMatchesPlan': True,
+            'physicalPlaybackAndArtMode': 'not-tested-by-inventory'}
 
 
 def launcher_config(snap, preferred, package, name):

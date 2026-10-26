@@ -7,7 +7,7 @@ import sys
 import xml.etree.ElementTree as ET
 import zipfile
 from .core import (Refused, snapshot, make_plan, check_plan, fingerprint, digest,
-                   verify_inventory, launcher_config)
+                   verify_inventory, verify_plan_state, launcher_config)
 from .device import Device
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -158,6 +158,9 @@ def parser():
     apply.add_argument('--allow-data-loss', action='store_true')
     recovery = commands.add_parser('recovery', help='Show manual reinstall instructions; no TV writes')
     recovery.add_argument('--journal', required=True)
+    verify = commands.add_parser('verify', help='Read current TV inventory and verify a previously applied journal')
+    verify.add_argument('--journal', required=True)
+    verify.add_argument('--sdb', default='sdb')
     config = commands.add_parser('launcher-config', help='Create private shortcut config from a real inventory')
     config.add_argument('--snapshot', required=True)
     config.add_argument('--apps', nargs='+', required=True)
@@ -201,6 +204,17 @@ def main(argv=None):
         print('MANUAL REINSTALL ONLY. Data/logins cannot be restored from an inventory.')
         for entry in journal['plan']['remove']:
             print(entry['name'] + ': ' + entry['reinstall'])
+    elif args.command == 'verify':
+        journal = read(args.journal)
+        snap, plan = journal['snapshot'], journal['plan']
+        check_plan(plan, snap, catalog)
+        if journal.get('status') != 'verified':
+            raise Refused('Journal was stopped/incomplete; inspect manually before claiming acceptance')
+        device = Device(snap['host'], args.sdb)
+        device.connect()
+        if fingerprint(device.info()) != snap['fingerprint']:
+            raise Refused('Different TV; verification refused')
+        print(json.dumps(verify_plan_state(plan, snap, device.apps(), catalog), indent=2))
     elif args.command == 'launcher-config':
         save_new(args.out, launcher_config(read(args.snapshot), args.apps, args.package, args.name))
         print('Saved private launcher config:', args.out)
