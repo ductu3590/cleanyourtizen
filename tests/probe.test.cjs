@@ -135,3 +135,15 @@ test('probe shows the chosen source on the MAIN window then can hide it', () => 
   assert.match(said[0], /^OK S: setSource \+ show/);
   assert.match(said[1], /^OK H: hide/);
 });
+
+test('probe lists the supported keys read-only without registering any', () => {
+  const calls = [];
+  const tizen = {tvinputdevice: {
+    getSupportedKeys() { calls.push('get'); return [{name: 'MediaPlay', code: 415}, {name: 'ColorF0Red', code: 403}]; },
+    registerKey() { calls.push('register'); },
+  }};
+  const by = byName(probe.sync({tizen}));
+  assert.strictEqual(by.supportedKeys.detail, 'MediaPlay,ColorF0Red');
+  assert.deepStrictEqual(calls, ['get']);
+  assert.strictEqual(byName(probe.sync({})).supportedKeys.detail, 'missing');
+});

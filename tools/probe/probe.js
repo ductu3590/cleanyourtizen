@@ -86,6 +86,11 @@
     safe(results, 'webapis', function () { return webapis ? names(webapis).join(',') : 'missing'; });
     safe(results, 'b2bapis', function () { return env.b2bapis ? names(env.b2bapis).join(',') : 'missing'; });
     safe(results, 'tvinputdevice', function () { return tizen && tizen.tvinputdevice ? 'present' : 'missing'; });
+    safe(results, 'supportedKeys', function () {
+      if (!tizen || !tizen.tvinputdevice || !tizen.tvinputdevice.getSupportedKeys) return 'missing';
+      var keys = tizen.tvinputdevice.getSupportedKeys();
+      return keys.map(function (key) { return key.name; }).join(',');
+    });
     [['tizen.tvwindow', tizen && tizen.tvwindow], ['tizen.tvdisplaycontrol', tizen && tizen.tvdisplaycontrol],
       ['tizen.tvaudiocontrol', tizen && tizen.tvaudiocontrol], ['tizen.tvinfo', tizen && tizen.tvinfo],
       ['webapis.tvinfo', webapis && webapis.tvinfo], ['webapis.unipicture', webapis && webapis.unipicture],
