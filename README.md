@@ -12,6 +12,8 @@ Art Mode stay untouched.
 |---|---|
 | ![Input menu](docs/images/launcher-input.png) | ![Settings](docs/images/launcher-settings.png) |
 
+*Screenshot wallpaper: an Apple TV aerial image, used for illustration only. It belongs to its owners and is not covered by this project's MIT license. The repository ships no wallpapers; use images you may use.*
+
 ## Highlights
 
 - Big clock and date, a quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.

@@ -199,3 +199,10 @@ test('public docs ship no private device data and keep the safety warnings', () 
   assert.match(fs.readFileSync(path.join(root, 'README.vi.md'), 'utf8'), /Tự chịu rủi ro/);
   assert.match(fs.readFileSync(path.join(root, 'docs/HUONG-DAN.md'), 'utf8'), /Invalid signature/);
 });
+test('screenshots are attributed as illustration-only wallpaper and the repo ships no wallpapers', () => {
+  const root = path.join(__dirname, '..');
+  assert.match(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), /Apple TV aerial image, used for illustration only/);
+  assert.match(fs.readFileSync(path.join(root, 'README.vi.md'), 'utf8'), /chỉ dùng để minh hoạ/);
+  assert.ok(!fs.existsSync(path.join(root, 'launcher', 'wallpapers')));
+  for (const name of ['home', 'input', 'settings']) assert.ok(fs.statSync(path.join(root, 'docs/images/launcher-' + name + '.png')).size < 1_500_000);
+});

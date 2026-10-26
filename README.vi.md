@@ -11,6 +11,8 @@
 |---|---|
 | ![Menu nguồn vào](docs/images/launcher-input.png) | ![Cài đặt](docs/images/launcher-settings.png) |
 
+*Ảnh nền trong ảnh chụp màn hình: một ảnh aerial của Apple TV, chỉ dùng để minh hoạ. Quyền thuộc về chủ sở hữu và không nằm trong giấy phép MIT của dự án. Repo không kèm ảnh nền; hãy dùng ảnh bạn có quyền sử dụng.*
+
 ## Có gì trong launcher
 
 - Đồng hồ và ngày lớn, thanh nhanh **Nguồn vào**, **Wi-Fi**, **Cài đặt**, và hàng ứng dụng yêu thích.
