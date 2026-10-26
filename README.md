@@ -1,12 +1,39 @@
 # CleanYourTizen
 
-A Samsung Tizen TV cleanup toolkit and an Apple TV-inspired standalone home app.
-**v0.1: read-only discovery by default; no root, firmware edits, or system Home takeover.**
+[English](README.md) · [Tiếng Việt](README.vi.md)
+
+A glass-style, Apple TV-inspired **home screen app for Samsung Tizen TVs**, plus a careful, read-only-by-default
+toolkit to inspect a TV and plan app cleanup. It runs as a normal app: no root, no firmware changes, and Samsung Home and
+Art Mode stay untouched.
+
+![Home screen](docs/images/launcher-home.png)
+
+| Input menu | Settings |
+|---|---|
+| ![Input menu](docs/images/launcher-input.png) | ![Settings](docs/images/launcher-settings.png) |
+
+## Highlights
+
+- Big clock and date, a quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
+- **Input switching** with the device names your TV reports (for example a game console on HDMI 4).
+- **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
+- **Daily wallpaper** from your own images, with a quick picker that previews each one live.
+- Everything is local HTML/CSS/JS. No network calls, no accounts, no analytics.
+- Safe cleanup tooling: inspect, plan, apply with a plan hash and data-loss acknowledgement, and verify.
+
+## Start here
+
+- **[Step-by-step guide (English)](docs/GETTING-STARTED.md)** · **[Hướng dẫn từng bước (Tiếng Việt)](docs/HUONG-DAN.md)**
+- [Signing and certificates](docs/SIGNING.md) · [Safety scope](docs/SAFETY.md) · [Device acceptance checklist](docs/ACCEPTANCE.md)
 
 Inspired by the inspect → review → apply → verify workflow of
 [CleanYourTV](https://github.com/Gathin23/cleanyourtv). This is an independent implementation;
 Android `adb`, `pm disable-user` and APK launchers do not run on Tizen.
 Not affiliated with Samsung or Apple. App names are their owners' trademarks; tile graphics are original typography.
+
+> **Use at your own risk.** Uninstalling an app deletes its data and logins and cannot be undone from this tool.
+> The launcher cannot take over the Home key, Power key or brand hotkeys. Everything here was verified on one TV
+> (see below); other models and firmware may behave differently.
 
 ## What works, and what is not promised
 
@@ -45,8 +72,9 @@ Other models and firmware may differ. Treat these as observations, not guarantee
 - Python 3.10+ (standard library only), official Samsung/Tizen `sdb` on PATH or `--sdb /path/to/sdb`.
 - TV and computer on a trusted LAN, TV Developer Mode enabled for the computer IP.
 - Node 18+ for preview and JavaScript tests; no npm dependencies or install needed.
-- To install the launcher: official Tizen SDK CLI or IDE extension, and your own Samsung author/distributor certificates.
-  The retired Eclipse-based Tizen Studio IDE is not required or recommended.
+- To install the launcher: the official Tizen command-line tools (`sdb`, `tizen`) with Samsung's Certificate and TV extensions,
+  and your own Samsung author/distributor certificates. The Tizen Studio IDE itself is not needed; see the
+  [step-by-step guide](docs/GETTING-STARTED.md).
 
 Use Samsung's [device connection instructions](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html).
 The repo does not download or redistribute Samsung binaries, signing keys or firmware.

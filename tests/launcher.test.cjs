@@ -172,3 +172,30 @@ test('documentation states the verified limits and the DUID signing requirement'
   assert.match(signing, /lists only the TV's IP address is wrong/);
   assert.match(signing, /sdb shell 0 getduid/);
 });
+test('every relative link and image in the public documentation resolves to a file', () => {
+  const root = path.join(__dirname, '..');
+  const docs = ['README.md', 'README.vi.md', 'CONTRIBUTING.md', ...fs.readdirSync(path.join(root, 'docs')).filter((n) => n.endsWith('.md')).map((n) => 'docs/' + n)];
+  const missing = [];
+  for (const doc of docs) {
+    const text = fs.readFileSync(path.join(root, doc), 'utf8');
+    for (const match of text.matchAll(/!?\[[^\]]*\]\(([^)\s]+)\)/g)) {
+      const target = match[1].split('#')[0];
+      if (!target || /^[a-z]+:/i.test(target)) continue;
+      if (!fs.existsSync(path.join(root, path.dirname(doc), target))) missing.push(doc + ' -> ' + target);
+    }
+  }
+  assert.deepEqual(missing, []);
+});
+test('public docs ship no private device data and keep the safety warnings', () => {
+  const root = path.join(__dirname, '..');
+  const files = ['README.md', 'README.vi.md', 'docs/GETTING-STARTED.md', 'docs/HUONG-DAN.md', 'docs/SIGNING.md'];
+  for (const file of files) {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.ok(!/([0-9a-f]{2}:){5}[0-9a-f]{2}/i.test(text), file + ' has a MAC-like value');
+    assert.ok(!/192\.168\.1\.(214|131)/.test(text), file + ' has a real LAN address');
+    assert.ok(!/BDCOGBCPMNNQI/.test(text), file + ' has a DUID');
+  }
+  assert.match(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), /Use at your own risk/);
+  assert.match(fs.readFileSync(path.join(root, 'README.vi.md'), 'utf8'), /Tự chịu rủi ro/);
+  assert.match(fs.readFileSync(path.join(root, 'docs/HUONG-DAN.md'), 'utf8'), /Invalid signature/);
+});
