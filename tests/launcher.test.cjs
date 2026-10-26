@@ -83,3 +83,19 @@ test('menu focus steps stay inside the list; volume stays between 0 and 100', ()
   assert.equal(core.adjustVolume(undefined, 'ArrowRight'), 2);
   assert.equal(core.adjustVolume(10, 'Enter'), 10);
 });
+
+test('launcher page stays inside the strict CSP: no inline script, style or handlers', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../launcher/index.html'), 'utf8');
+  assert.ok(!/<script(?![^>]*src=)/.test(html));
+  assert.ok(!/<style/.test(html));
+  assert.ok(!/\sstyle=/.test(html));
+  assert.ok(!/\son[a-z]+=/.test(html));
+  assert.ok(html.includes("connect-src 'none'"));
+});
+test('launcher input list is limited to the configured sources and Back leaves video first', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  assert.ok(app.includes('core.inputChoices(value, config.inputs)'));
+  assert.ok(app.indexOf('if (videoOn) leaveVideo()') < app.indexOf('else returnHome()'));
+  const cfg = fs.readFileSync(path.join(__dirname, '../launcher/config.js'), 'utf8');
+  assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4\}\]/);
+});

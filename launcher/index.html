@@ -5,13 +5,21 @@
 <title>CleanYourTizen</title><link rel="icon" href="icon.png"><link rel="stylesheet" href="style.css"></head>
 <body>
 <main id="home">
-  <header><div class="wordmark"><span class="mark">C</span> CLEAN YOUR TIZEN <span class="edition">HOME / 01</span></div>
-    <nav aria-label="Navigation"><button id="library" data-zone="nav">Ứng dụng</button><button id="settings" data-zone="nav">Sắp xếp</button><button id="samsung" data-zone="nav">Samsung Home ↗</button></nav></header>
-  <section class="hero"><div><p class="eyebrow">KHÔNG GIAN GIẢI TRÍ CỦA BẠN</p><h1>Mọi thứ bạn thích.<br><span>Không thêm gì khác.</span></h1><p class="hero-note">Ứng dụng quen thuộc. Một màn hình gọn gàng.</p></div><div class="timeblock"><time id="time">00:00</time><p id="date"></p><span class="quiet">CHẬM LẠI MỘT CHÚT.</span></div></section>
-  <section class="favorites" aria-label="Favorite applications"><div class="section-heading"><h2>Dành cho bạn</h2><p id="selection">Chọn một ứng dụng</p></div><div id="dock" class="dock"></div></section>
-  <footer><span><i></i> YOUR TV. YOUR SPACE.</span><span id="mode">LOCAL / PRIVATE / QUIET</span><span>← → Chọn &nbsp; · &nbsp; OK Mở &nbsp; · &nbsp; Back Samsung Home</span></footer>
+  <section class="clockblock" aria-label="Thời gian"><p id="date"></p><time id="time">00:00</time></section>
+  <nav class="pill glass" aria-label="Điều khiển nhanh">
+    <button id="btn-input" data-menu="input" aria-label="Nguồn vào" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg></button>
+    <button id="btn-wifi" data-menu="wifi" data-bars="0" aria-label="Wi-Fi" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="arc a3" d="M2.5 9a14 14 0 0 1 19 0"/><path class="arc a2" d="M6 12.8a9 9 0 0 1 12 0"/><path class="arc a1" d="M9.2 16.4a4.5 4.5 0 0 1 5.6 0"/><circle class="dot" cx="12" cy="19.6" r="1"/></svg></button>
+    <button id="btn-settings" data-menu="settings" aria-label="Cài đặt" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </nav>
+  <p id="caption" class="caption"></p>
+  <div id="menu" class="menu glass" role="menu" hidden><h2 id="menu-title"></h2><div id="menu-items"></div></div>
+  <section id="dock" class="dock" aria-label="Ứng dụng"></section>
+  <p id="mode" class="mode"></p>
 </main>
-<section id="panel" class="panel" hidden aria-label="Application arrangement"><div class="panel-header"><div><p class="eyebrow">SẮP XẾP KHÔNG GIAN</p><h2>Đưa ứng dụng bạn thích lên trước.</h2></div><button id="close-panel">Xong</button></div><p class="panel-note">Chọn ứng dụng để đưa lên đầu hàng. Thứ tự được lưu trên TV này.</p><div id="arrange" class="arrange"></div></section>
+<section id="panel" class="panel" hidden aria-label="Sắp xếp ứng dụng"><div class="panel-header"><div><p class="eyebrow">SẮP XẾP</p><h2>Đưa ứng dụng bạn thích lên trước.</h2></div><button id="close-panel">Xong</button></div><p class="panel-note">Chọn ứng dụng để đưa lên đầu hàng. Thứ tự được lưu trên TV này.</p><div id="arrange" class="arrange"></div></section>
 <div id="message" role="status" aria-live="polite" hidden></div>
 <script src="config.js"></script><script src="core.js"></script><script src="app.js"></script>
 </body></html>

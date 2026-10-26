@@ -157,6 +157,14 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(xml.find('{http://tizen.org/ns/widgets}application').get('required_version'), '6.5')
         self.assertNotIn('background-category', widget_manifest(config))
 
+    def test_launcher_manifest_requests_only_the_reviewed_privileges(self):
+        from cyt.cli import widget_manifest
+        import xml.etree.ElementTree as ET
+        config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        xml = ET.fromstring(widget_manifest(config))
+        names = sorted(item.get('name').rsplit('/', 1)[1] for item in xml.findall('{http://tizen.org/ns/widgets}privilege'))
+        self.assertEqual(names, ['application.launch', 'network.get', 'tv.audiocontrol', 'tv.inputdevice', 'tv.window'])
+
     def test_unknown_stock_home_uses_exit_instead_of_guessed_id(self):
         value = snap()
         value['apps'] = [app for app in value['apps'] if app['id'] != 'com.samsung.tv.csfs']

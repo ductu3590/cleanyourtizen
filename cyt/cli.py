@@ -93,6 +93,9 @@ def widget_manifest(config):
  <feature name="http://tizen.org/feature/screen.size.all"/>
  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+ <tizen:privilege name="http://tizen.org/privilege/network.get"/>
+ <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
+ <tizen:privilege name="http://tizen.org/privilege/tv.audiocontrol"/>
  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable"/>
 </widget>'''
 
