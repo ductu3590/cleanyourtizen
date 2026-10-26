@@ -46,8 +46,8 @@
   function sourceActions(sources) {
     return sources.map(function (source) {
       var name = source.editName ? ' "' + source.editName + '"' : '';
-      return {kind: 'source', source: source, label: 'Nguồn ' + source.type + ' ' + source.number + name};
-    });
+      return {kind: 'source', source: source, label: 'Hiện ' + source.type + ' ' + source.number + name};
+    }).concat([{kind: 'hide', label: 'Tắt video nguồn'}]);
   }
   function actions() {
     var list = [{kind: 'windows', label: 'getAvailableWindows'}];
@@ -62,7 +62,15 @@
     function fail(error) { report('LỖI ' + action.label + ': ' + describe(error) + ' ' + String(error && error.message || '').slice(0, 80)); }
     try {
       if (action.kind === 'source') {
-        tizen.tvwindow.setSource(action.source, function () { ok('setSource'); }, fail);
+        tizen.tvwindow.setSource(action.source, function () {
+          if (typeof document !== 'undefined') document.documentElement.style.background = document.body.style.background = 'transparent';
+          tizen.tvwindow.show(function () { ok('setSource + show'); }, fail, ['0px', '0px', '1920px', '1080px'], 'MAIN');
+        }, fail);
+      } else if (action.kind === 'hide') {
+        tizen.tvwindow.hide(function () {
+          if (typeof document !== 'undefined') document.documentElement.style.background = document.body.style.background = '';
+          ok('hide');
+        }, fail, 'MAIN');
       } else if (action.kind === 'windows') {
         tizen.tvwindow.getAvailableWindows(function (windows) { ok(JSON.stringify(windows)); }, fail);
       } else if (action.kind === 'appcontrol') {

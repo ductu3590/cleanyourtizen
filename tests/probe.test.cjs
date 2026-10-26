@@ -81,8 +81,9 @@ test('probe finds source objects inside VIDEOSOURCE and labels them with names',
   assert.strictEqual(found.length, 3);
   assert.strictEqual(found[0], hdmi);
   const labels = probe.sourceActions(found).map((a) => a.label);
-  assert.strictEqual(labels[0], 'Nguồn HDMI 1 "FPT Play"');
-  assert.strictEqual(labels[1], 'Nguồn AV 1');
+  assert.strictEqual(labels[0], 'Hiện HDMI 1 "FPT Play"');
+  assert.strictEqual(labels[1], 'Hiện AV 1');
+  assert.strictEqual(labels[labels.length - 1], 'Tắt video nguồn');
   assert.deepStrictEqual(probe.findSources(null), []);
 });
 
@@ -109,7 +110,7 @@ test('probe perform reports success, API errors and exceptions', () => {
   const said = [];
   const report = (text) => said.push(text);
   const tizen = {
-    tvwindow: {setSource(source, ok) { ok(); }, getAvailableWindows(ok, fail) { fail({name: 'SecurityError', message: 'no'}); }},
+    tvwindow: {setSource(source, ok) { ok(); }, show(ok) { ok(); }, getAvailableWindows(ok, fail) { fail({name: 'SecurityError', message: 'no'}); }},
     application: {launch() { throw new Error('boom'); }},
   };
   probe.perform({kind: 'source', source: {type: 'HDMI', number: 1}, label: 'S'}, tizen, report);
@@ -118,4 +119,19 @@ test('probe perform reports success, API errors and exceptions', () => {
   assert.match(said[0], /^OK S/);
   assert.match(said[1], /^LỖI W: SecurityError/);
   assert.match(said[2], /^NGOẠI LỆ L: Error boom/);
+});
+
+test('probe shows the chosen source on the MAIN window then can hide it', () => {
+  const calls = [];
+  const tvwindow = {
+    setSource(source, ok) { calls.push(['setSource', source.number]); ok(); },
+    show(ok, fail, rect, type) { calls.push(['show', rect.join(','), type]); ok(); },
+    hide(ok, fail, type) { calls.push(['hide', type]); ok(); },
+  };
+  const said = [];
+  probe.perform({kind: 'source', source: {type: 'HDMI', number: 2}, label: 'S'}, {tvwindow}, (t) => said.push(t));
+  probe.perform({kind: 'hide', label: 'H'}, {tvwindow}, (t) => said.push(t));
+  assert.deepStrictEqual(calls, [['setSource', 2], ['show', '0px,0px,1920px,1080px', 'MAIN'], ['hide', 'MAIN']]);
+  assert.match(said[0], /^OK S: setSource \+ show/);
+  assert.match(said[1], /^OK H: hide/);
 });
