@@ -7,10 +7,13 @@
   "evidence": {
     "sdbInventory": "verified 2026-10-26",
     "debloat": "not-tested",
-    "launcherInstall": "not-tested",
-    "physicalRemote": "not-tested",
+    "launcherInstall": "verified 2026-10-26: signed with own Samsung author/distributor certificates, installed with tizen install",
+    "physicalRemote": "partial 2026-10-26: D-pad, OK and Back verified in launcher; Home and Power are not in tvinputdevice.getSupportedKeys",
     "artMode": "not-tested",
-    "nativeHome": "unsupported"
+    "nativeHome": "unsupported",
+    "inputSwitch": "verified 2026-10-26: tvwindow.setSource with VIDEOSOURCE instances and a transparent page shows HDMI 4",
+    "settingsApps": "verified 2026-10-26: launching Samsung Settings, Network and Home Setting apps from a web app fails with UnknownError",
+    "homeKeyAndHotkeys": "not-registrable 2026-10-26: Home, Power and the Disney+/VieON hotkeys are absent from supported keys"
   },
   "artModeRequired": true,
   "notes": "Inventory read on one Vietnamese The Frame. No claim for another model, region or firmware. This profile enables no privileged operations."

@@ -144,3 +144,10 @@ test('wallpaper picker previews on focus, saves only on OK and restores on Back'
   assert.match(app, /function wallpaper\(\) \{\s*if \(picking\) return;/);
   assert.ok(!app.includes('innerHTML'));
 });
+test('device profile records that Home, Power and brand hotkeys cannot be taken over', () => {
+  const profile = JSON.parse(fs.readFileSync(path.join(__dirname, '../profiles/qa55ls03b.json'), 'utf8'));
+  assert.equal(profile.model, 'QA55LS03BAKXXV');
+  assert.equal(profile.evidence.nativeHome, 'unsupported');
+  assert.match(profile.evidence.homeKeyAndHotkeys, /^not-registrable/);
+  assert.equal(profile.artModeRequired, true);
+});
