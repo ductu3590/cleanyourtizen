@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><title>CytProbe</title>
 <style>body{margin:0;padding:32px;background:#111;color:#eee;font:16px/1.3 monospace}
-button{font:inherit;margin:6px;padding:8px 16px}button:focus{outline:4px solid #5af}
+button{font:inherit;margin:4px;padding:6px 12px}#status{font-weight:bold;color:#fd5;margin:8px 0}button:focus{outline:4px solid #5af}
 pre{white-space:pre-wrap;word-break:break-all}</style></head>
 <body><div id="actions"></div><div id="status">Chưa mở ứng dụng nào.</div><pre id="out">Đang thăm dò…</pre>
 <script src="probe.js"></script>
@@ -12,15 +12,12 @@ pre{white-space:pre-wrap;word-break:break-all}</style></head>
     out.textContent = results.map(function (r) { return r.status + ' ' + r.name + ': ' + r.detail; }).join('\n');
     console.log('CYTPROBE ' + JSON.stringify(results));
   });
-  CytProbe.TARGET_APPS.forEach(function (id) {
+  CytProbe.actions().forEach(function (action) {
     var b = document.createElement('button');
-    b.textContent = 'Mở ' + id;
+    b.textContent = action.label;
     b.onclick = function () {
-      try {
-        status.textContent = 'Đang mở ' + id + '…';
-        window.tizen.application.launch(id, function () { status.textContent = 'OK ' + id; },
-          function (e) { status.textContent = 'LỖI ' + id + ': ' + (e && e.name) + ' ' + (e && e.message); });
-      } catch (e) { status.textContent = 'NGOẠI LỆ ' + id + ': ' + (e && e.name) + ' ' + (e && e.message); }
+      status.textContent = 'Đang thử ' + action.label + '…';
+      CytProbe.perform(action, window.tizen, function (text) { status.textContent = text; });
     };
     actions.appendChild(b);
   });

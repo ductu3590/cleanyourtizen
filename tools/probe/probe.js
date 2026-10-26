@@ -4,7 +4,9 @@
 }(this, function () {
   'use strict';
   var TARGET_APPS = ['com.samsung.tv.coba.setting', 'org.tizen.SMSourceAPP',
-    'com.samsung.tv.coba.setting.networksettings', 'org.tizen.hdmicec', 'org.tizen.homesetting'];
+    'com.samsung.tv.coba.setting.networksettings', 'org.tizen.hdmicec', 'org.tizen.homesetting', 'com.samsung.tv.csfs'];
+  var APPCONTROL_APPS = ['com.samsung.tv.coba.setting', 'com.samsung.tv.coba.setting.networksettings', 'org.tizen.homesetting'];
+  var SOURCES = [{type: 'HDMI', number: 1}, {type: 'HDMI', number: 2}, {type: 'HDMI', number: 3}, {type: 'HDMI', number: 4}];
   var PROPERTIES = ['WIFI_NETWORK', 'ETHERNET_NETWORK', 'NETWORK', 'BUILD', 'DISPLAY'];
 
   function describe(error) { return String(error && (error.name || error.message) || error).slice(0, 120); }
@@ -30,9 +32,35 @@
     if (key === 'ArrowLeft' || key === 'ArrowUp') return Math.max(0, index - 1);
     return index;
   }
+  function actions() {
+    var list = [];
+    SOURCES.forEach(function (source) {
+      list.push({kind: 'source', source: source, label: 'Nguồn ' + source.type + ' ' + source.number +
+        (source.number === 4 ? ' (về lại)' : '')});
+    });
+    list.push({kind: 'windows', label: 'getAvailableWindows'});
+    APPCONTROL_APPS.forEach(function (id) { list.push({kind: 'appcontrol', id: id, label: 'AppControl ' + id}); });
+    TARGET_APPS.forEach(function (id) { list.push({kind: 'launch', id: id, label: 'Mở ' + id}); });
+    return list;
+  }
+  function perform(action, tizen, report) {
+    function ok(text) { report('OK ' + action.label + (text ? ': ' + text : '')); }
+    function fail(error) { report('LỖI ' + action.label + ': ' + describe(error) + ' ' + String(error && error.message || '').slice(0, 80)); }
+    try {
+      if (action.kind === 'source') {
+        tizen.tvwindow.setSource(action.source, function () { ok('setSource'); }, fail);
+      } else if (action.kind === 'windows') {
+        tizen.tvwindow.getAvailableWindows(function (windows) { ok(JSON.stringify(windows)); }, fail);
+      } else if (action.kind === 'appcontrol') {
+        var control = new tizen.ApplicationControl('http://tizen.org/appcontrol/operation/default');
+        tizen.application.launchAppControl(control, action.id, function () { ok(''); }, fail);
+      } else {
+        tizen.application.launch(action.id, function () { ok(''); }, fail);
+      }
+    } catch (error) { report('NGOẠI LỆ ' + action.label + ': ' + describe(error) + ' ' + String(error && error.message || '').slice(0, 80)); }
+  }
   function sync(env) {
     var results = [], tizen = env.tizen, webapis = env.webapis;
-    safe(results, 'tizen', function () { return tizen ? names(tizen).join(',') : 'missing'; });
     safe(results, 'webapis', function () { return webapis ? names(webapis).join(',') : 'missing'; });
     safe(results, 'b2bapis', function () { return env.b2bapis ? names(env.b2bapis).join(',') : 'missing'; });
     safe(results, 'tvinputdevice', function () { return tizen && tizen.tvinputdevice ? 'present' : 'missing'; });
@@ -91,5 +119,5 @@
     registering = false;
     finish();
   }
-  return {run: run, sync: sync, nextIndex: nextIndex, methods: methods, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
+  return {run: run, sync: sync, actions: actions, perform: perform, nextIndex: nextIndex, methods: methods, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
 }));

@@ -9,7 +9,6 @@ const byName = (results) => Object.fromEntries(results.map((r) => [r.name, r]));
 test('probe reports missing APIs without throwing', (t, done) => {
   probe.run({}, (results) => {
     const by = byName(results);
-    assert.strictEqual(by.tizen.detail, 'missing');
     assert.strictEqual(by.webapis.detail, 'missing');
     assert.strictEqual(by.tvinputdevice.detail, 'missing');
     done();
@@ -73,4 +72,26 @@ test('probe lists methods of TV APIs and reads the current window source', (t, d
     assert.strictEqual(by['webapis.unipicture()'].detail, 'missing');
     done();
   });
+});
+
+test('probe actions cover HDMI 1-4, app control and Samsung Home', () => {
+  const list = probe.actions();
+  assert.deepStrictEqual(list.filter((a) => a.kind === 'source').map((a) => a.source.number), [1, 2, 3, 4]);
+  assert.ok(list.some((a) => a.kind === 'launch' && a.id === 'com.samsung.tv.csfs'));
+  assert.ok(list.some((a) => a.kind === 'appcontrol' && a.id === 'com.samsung.tv.coba.setting'));
+});
+
+test('probe perform reports success, API errors and exceptions', () => {
+  const said = [];
+  const report = (text) => said.push(text);
+  const tizen = {
+    tvwindow: {setSource(source, ok) { ok(); }, getAvailableWindows(ok, fail) { fail({name: 'SecurityError', message: 'no'}); }},
+    application: {launch() { throw new Error('boom'); }},
+  };
+  probe.perform({kind: 'source', source: {type: 'HDMI', number: 1}, label: 'S'}, tizen, report);
+  probe.perform({kind: 'windows', label: 'W'}, tizen, report);
+  probe.perform({kind: 'launch', id: 'x.y', label: 'L'}, tizen, report);
+  assert.match(said[0], /^OK S/);
+  assert.match(said[1], /^LỖI W: SecurityError/);
+  assert.match(said[2], /^NGOẠI LỆ L: Error boom/);
 });
