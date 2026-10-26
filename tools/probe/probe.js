@@ -6,8 +6,8 @@
   var TARGET_APPS = ['com.samsung.tv.coba.setting', 'org.tizen.SMSourceAPP',
     'com.samsung.tv.coba.setting.networksettings', 'org.tizen.hdmicec', 'org.tizen.homesetting', 'com.samsung.tv.csfs'];
   var APPCONTROL_APPS = ['com.samsung.tv.coba.setting', 'com.samsung.tv.coba.setting.networksettings', 'org.tizen.homesetting'];
-  var SOURCES = [{type: 'HDMI', number: 1}, {type: 'HDMI', number: 2}, {type: 'HDMI', number: 3}, {type: 'HDMI', number: 4}];
-  var PROPERTIES = ['WIFI_NETWORK', 'ETHERNET_NETWORK', 'NETWORK', 'BUILD', 'DISPLAY'];
+  var PROPERTIES = ['VIDEOSOURCE', 'WIFI_NETWORK', 'NETWORK'];
+  var USER_APPS = ['ZTpEFWgfa9.FPTPlay', 'IkWsFHtOY9.Stremio', '9Ur5IzDKqV.TizenYouTube', 'org.tizen.netflix-app'];
 
   function describe(error) { return String(error && (error.name || error.message) || error).slice(0, 120); }
   function names(object) {
@@ -32,15 +32,29 @@
     if (key === 'ArrowLeft' || key === 'ArrowUp') return Math.max(0, index - 1);
     return index;
   }
-  function actions() {
-    var list = [];
-    SOURCES.forEach(function (source) {
-      list.push({kind: 'source', source: source, label: 'Nguồn ' + source.type + ' ' + source.number +
-        (source.number === 4 ? ' (về lại)' : '')});
+  function findSources(value) {
+    var found = [];
+    function walk(node, depth) {
+      if (!node || typeof node !== 'object' || depth > 4) return;
+      if (typeof node.type === 'string' && typeof node.number === 'number') { found.push(node); return; }
+      var key;
+      for (key in node) { try { walk(node[key], depth + 1); } catch (error) { /* skip */ } }
+    }
+    walk(value, 0);
+    return found;
+  }
+  function sourceActions(sources) {
+    return sources.map(function (source) {
+      var name = source.editName ? ' "' + source.editName + '"' : '';
+      return {kind: 'source', source: source, label: 'Nguồn ' + source.type + ' ' + source.number + name};
     });
-    list.push({kind: 'windows', label: 'getAvailableWindows'});
+  }
+  function actions() {
+    var list = [{kind: 'windows', label: 'getAvailableWindows'}];
+    USER_APPS.concat(['com.samsung.tv.csfs', 'org.tizen.SMSourceAPP']).forEach(function (id) {
+      list.push({kind: 'launch', id: id, label: 'Mở ' + id});
+    });
     APPCONTROL_APPS.forEach(function (id) { list.push({kind: 'appcontrol', id: id, label: 'AppControl ' + id}); });
-    TARGET_APPS.forEach(function (id) { list.push({kind: 'launch', id: id, label: 'Mở ' + id}); });
     return list;
   }
   function perform(action, tizen, report) {
@@ -96,7 +110,8 @@
       PROPERTIES.forEach(function (property) {
         probeAsync('systeminfo.' + property, function (ok, fail) {
           tizen.systeminfo.getPropertyValue(property, function (value) {
-            ok(JSON.stringify(value).slice(0, 300));
+            if (property === 'VIDEOSOURCE') { env.sources = findSources(value); }
+            ok(JSON.stringify(value).slice(0, 700));
           }, fail);
         });
       });
@@ -119,5 +134,5 @@
     registering = false;
     finish();
   }
-  return {run: run, sync: sync, actions: actions, perform: perform, nextIndex: nextIndex, methods: methods, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
+  return {run: run, sync: sync, actions: actions, findSources: findSources, sourceActions: sourceActions, USER_APPS: USER_APPS, perform: perform, nextIndex: nextIndex, methods: methods, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
 }));

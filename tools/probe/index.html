@@ -8,11 +8,7 @@ pre{white-space:pre-wrap;word-break:break-all}</style></head>
 <script>
 (function () {
   var status = document.getElementById('status'), out = document.getElementById('out'), actions = document.getElementById('actions');
-  CytProbe.run({tizen: window.tizen, webapis: window.webapis, b2bapis: window.b2bapis}, function (results) {
-    out.textContent = results.map(function (r) { return r.status + ' ' + r.name + ': ' + r.detail; }).join('\n');
-    console.log('CYTPROBE ' + JSON.stringify(results));
-  });
-  CytProbe.actions().forEach(function (action) {
+  function addButton(action) {
     var b = document.createElement('button');
     b.textContent = action.label;
     b.onclick = function () {
@@ -20,7 +16,14 @@ pre{white-space:pre-wrap;word-break:break-all}</style></head>
       CytProbe.perform(action, window.tizen, function (text) { status.textContent = text; });
     };
     actions.appendChild(b);
+  }
+  var env = {tizen: window.tizen, webapis: window.webapis, b2bapis: window.b2bapis};
+  CytProbe.run(env, function (results) {
+    CytProbe.sourceActions(env.sources || []).forEach(addButton);
+    out.textContent = results.map(function (r) { return r.status + ' ' + r.name + ': ' + r.detail; }).join('\n');
+    console.log('CYTPROBE ' + JSON.stringify(results));
   });
+  CytProbe.actions().forEach(addButton);
   document.addEventListener('keydown', function (e) {
     var buttons = Array.prototype.slice.call(actions.querySelectorAll('button'));
     var at = buttons.indexOf(document.activeElement);

@@ -74,9 +74,33 @@ test('probe lists methods of TV APIs and reads the current window source', (t, d
   });
 });
 
-test('probe actions cover HDMI 1-4, app control and Samsung Home', () => {
+test('probe finds source objects inside VIDEOSOURCE and labels them with names', () => {
+  const hdmi = {type: 'HDMI', number: 1, editName: 'FPT Play'};
+  const value = {connected: [hdmi, {type: 'AV', number: 1}], other: {nested: [{type: 'HDMI', number: 4}]}};
+  const found = probe.findSources(value);
+  assert.strictEqual(found.length, 3);
+  assert.strictEqual(found[0], hdmi);
+  const labels = probe.sourceActions(found).map((a) => a.label);
+  assert.strictEqual(labels[0], 'Nguồn HDMI 1 "FPT Play"');
+  assert.strictEqual(labels[1], 'Nguồn AV 1');
+  assert.deepStrictEqual(probe.findSources(null), []);
+});
+
+test('probe VIDEOSOURCE read exposes the exact source instances for setSource', (t, done) => {
+  const hdmi = {type: 'HDMI', number: 2};
+  const tizen = {systeminfo: {getPropertyValue(property, ok) {
+    if (property === 'VIDEOSOURCE') ok({connected: [hdmi]}); else ok({});
+  }}};
+  const env = {tizen};
+  probe.run(env, () => {
+    assert.strictEqual(env.sources[0], hdmi);
+    done();
+  });
+});
+
+test('probe actions launch the user apps and Samsung Home and use app control for settings', () => {
   const list = probe.actions();
-  assert.deepStrictEqual(list.filter((a) => a.kind === 'source').map((a) => a.source.number), [1, 2, 3, 4]);
+  probe.USER_APPS.forEach((id) => assert.ok(list.some((a) => a.kind === 'launch' && a.id === id)));
   assert.ok(list.some((a) => a.kind === 'launch' && a.id === 'com.samsung.tv.csfs'));
   assert.ok(list.some((a) => a.kind === 'appcontrol' && a.id === 'com.samsung.tv.coba.setting'));
 });
