@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "model": "QA55LS03BAKXXV",
+  "firmware": "T-PTMUABC-1720.7",
+  "platform": "6.5",
+  "architecture": "32",
+  "evidence": {
+    "sdbInventory": "verified 2026-10-26",
+    "debloat": "not-tested",
+    "launcherInstall": "not-tested",
+    "physicalRemote": "not-tested",
+    "artMode": "not-tested",
+    "nativeHome": "unsupported"
+  },
+  "artModeRequired": true,
+  "notes": "Inventory read on one Vietnamese The Frame. No claim for another model, region or firmware. This profile enables no privileged operations."
+}

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=1920, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+<title>CleanYourTizen</title><link rel="icon" href="icon.png"><link rel="stylesheet" href="style.css"></head>
+<body>
+<main id="home">
+  <header><div class="wordmark"><span class="mark">C</span> CLEAN YOUR TIZEN <span class="edition">HOME / 01</span></div>
+    <nav aria-label="Navigation"><button id="library" data-zone="nav">Ứng dụng</button><button id="settings" data-zone="nav">Sắp xếp</button><button id="samsung" data-zone="nav">Samsung Home ↗</button></nav></header>
+  <section class="hero"><div><p class="eyebrow">KHÔNG GIAN GIẢI TRÍ CỦA BẠN</p><h1>Mọi thứ bạn thích.<br><span>Không thêm gì khác.</span></h1><p class="hero-note">Ứng dụng quen thuộc. Một màn hình gọn gàng.</p></div><div class="timeblock"><time id="time">00:00</time><p id="date"></p><span class="quiet">CHẬM LẠI MỘT CHÚT.</span></div></section>
+  <section class="favorites" aria-label="Favorite applications"><div class="section-heading"><h2>Dành cho bạn</h2><p id="selection">Chọn một ứng dụng</p></div><div id="dock" class="dock"></div></section>
+  <footer><span><i></i> YOUR TV. YOUR SPACE.</span><span id="mode">LOCAL / PRIVATE / QUIET</span><span>← → Chọn &nbsp; · &nbsp; OK Mở &nbsp; · &nbsp; Back Samsung Home</span></footer>
+</main>
+<section id="panel" class="panel" hidden aria-label="Application arrangement"><div class="panel-header"><div><p class="eyebrow">SẮP XẾP KHÔNG GIAN</p><h2>Đưa ứng dụng bạn thích lên trước.</h2></div><button id="close-panel">Xong</button></div><p class="panel-note">Chọn ứng dụng để đưa lên đầu hàng. Thứ tự được lưu trên TV này.</p><div id="arrange" class="arrange"></div></section>
+<div id="message" role="status" aria-live="polite" hidden></div>
+<script src="config.js"></script><script src="core.js"></script><script src="app.js"></script>
+</body></html>

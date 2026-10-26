@@ -1,0 +1,12 @@
+{
+  "name": "cleanyourtizen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capability-driven Samsung Tizen TV cleanup tools and a standalone launcher",
+  "scripts": {
+    "test": "node --test tests/launcher.test.cjs",
+    "preview": "node tools/preview.cjs"
+  },
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

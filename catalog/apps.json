@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "removable": [
+    {"package": "HJCS8hkoCO", "appIds": ["HJCS8hkoCO.TV360"], "name": "TV360", "reinstall": "Samsung Apps: search TV360; verify regional availability before removal"},
+    {"package": "6YLB5zo9te", "appIds": ["6YLB5zo9te.HotIptv"], "name": "Hot IPTV", "reinstall": "Samsung Apps: search Hot IPTV; retain any activation/license details separately"},
+    {"package": "Ylu4JbIR92", "appIds": ["Ylu4JbIR92.Fimplus"], "name": "Galaxy Play", "reinstall": "Samsung Apps: search Galaxy Play"},
+    {"package": "8gaDu51VDF", "appIds": ["8gaDu51VDF.VTVGiaiTri"], "name": "VTV Giai Tri", "reinstall": "Samsung Apps: search VTV Giai Tri"},
+    {"package": "VSfj7TFNZ5", "appIds": ["VSfj7TFNZ5.VTVcabON"], "name": "VTVcab ON", "reinstall": "Samsung Apps: search VTVcab ON"},
+    {"package": "7wiJRozgP7", "appIds": ["7wiJRozgP7.VieOn"], "name": "VieON", "reinstall": "Samsung Apps: search VieON"}
+  ],
+  "protectedPackages": ["ZODRT12q2l", "aQjWjLsPaO", "30IKH0OX8U", "adplatform", "tv6pbVMQFF", "J9fZJDMi1v", "WykOS4t4F0", "2022ePop01"],
+  "notes": "Conservative initial catalog, not a universal deletion list. Unknown packages are blocked. Names/ID shapes do not establish removability. New IDs require reviewed catalog entries and dependency evidence. Store recovery is manual and cannot restore login data."
+}
