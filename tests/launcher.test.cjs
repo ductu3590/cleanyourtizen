@@ -45,3 +45,41 @@ test('launcher does not intercept power/home or run a background watchdog', () =
   assert.ok(!app.includes('setInterval(openApp'));
   assert.ok(!app.includes('innerHTML'));
 });
+
+test('input choices keep only allowed sources, with TV-provided names and connection state', () => {
+  const ps4 = {type: 'HDMI', number: 4, editName: 'PlayStation 4'};
+  const soundbar = {type: 'HDMI', number: 3, editName: 'HW-Q6R Series'};
+  const value = {connected: [{type: 'TV', number: 1}], disconnected: [{type: 'HDMI', number: 1, editName: null}, soundbar, ps4]};
+  const choices = core.inputChoices(value, [{type: 'HDMI', number: 4}]);
+  assert.equal(choices.length, 1);
+  assert.equal(choices[0].source, ps4);
+  assert.equal(choices[0].title, 'HDMI 4');
+  assert.equal(choices[0].name, 'PlayStation 4');
+  assert.equal(choices[0].connected, false);
+  assert.equal(core.inputChoices({connected: [ps4], disconnected: [ps4]}, [{type: 'HDMI', number: 4}]).length, 1);
+  assert.equal(core.inputChoices({connected: [ps4]}, [{type: 'HDMI', number: 4}])[0].connected, true);
+});
+test('input choices tolerate missing, malformed or unconfigured data', () => {
+  assert.deepEqual(core.inputChoices(null, [{type: 'HDMI', number: 4}]), []);
+  assert.deepEqual(core.inputChoices({connected: 'x', disconnected: [null, {type: 1}]}, [{type: 'HDMI', number: 4}]), []);
+  assert.deepEqual(core.inputChoices({connected: [{type: 'HDMI', number: 4}]}, undefined), []);
+  assert.equal(core.inputChoices({connected: [{type: 'HDMI', number: 4}]}, [{type: 'HDMI', number: 4}])[0].name, '');
+});
+test('wifi info maps status and strength to bars and percent', () => {
+  assert.deepEqual(core.wifiInfo({status: 'ON', ssid: 'Home', signalStrength: 0.67}), {on: true, ssid: 'Home', percent: 67, bars: 3});
+  assert.equal(core.wifiInfo({status: 'ON', ssid: 'Home', signalStrength: 0.2}).bars, 1);
+  assert.equal(core.wifiInfo({status: 'ON', ssid: 'Home', signalStrength: 7}).percent, 100);
+  assert.deepEqual(core.wifiInfo({status: 'OFF', ssid: 'Home', signalStrength: 0.9}), {on: false, ssid: '', percent: 0, bars: 0});
+  assert.equal(core.wifiInfo(undefined).on, false);
+});
+test('menu focus steps stay inside the list; volume stays between 0 and 100', () => {
+  assert.equal(core.step(0, 3, 'ArrowUp'), 0);
+  assert.equal(core.step(2, 3, 'ArrowDown'), 2);
+  assert.equal(core.step(1, 3, 'ArrowDown'), 2);
+  assert.equal(core.step(0, 0, 'ArrowDown'), -1);
+  assert.equal(core.adjustVolume(1, 'ArrowLeft'), 0);
+  assert.equal(core.adjustVolume(99, 'ArrowRight'), 100);
+  assert.equal(core.adjustVolume(10, 'ArrowRight', 5), 15);
+  assert.equal(core.adjustVolume(undefined, 'ArrowRight'), 2);
+  assert.equal(core.adjustVolume(10, 'Enter'), 10);
+});
