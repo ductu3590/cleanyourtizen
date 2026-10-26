@@ -60,7 +60,12 @@ test('probe focus navigation clamps at both ends and ignores other keys', () => 
 });
 
 test('probe lists methods of TV APIs and reads the current window source', (t, done) => {
-  const tizen = {tvwindow: {getSource(ok) { ok({type: 'HDMI', number: 1}); }, setSource() {}, size: 3}};
+  function TVWindow() {}
+  TVWindow.prototype.getSource = function () { return {type: 'HDMI', number: 1}; };
+  TVWindow.prototype.setSource = function () {};
+  const tvwindow = new TVWindow();
+  tvwindow.size = 3;
+  const tizen = {tvwindow};
   probe.run({tizen}, (results) => {
     const by = byName(results);
     assert.strictEqual(by['tizen.tvwindow()'].detail, 'getSource,setSource');

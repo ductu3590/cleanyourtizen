@@ -3,11 +3,11 @@
 <style>body{margin:0;padding:32px;background:#111;color:#eee;font:16px/1.3 monospace}
 button{font:inherit;margin:6px;padding:8px 16px}button:focus{outline:4px solid #5af}
 pre{white-space:pre-wrap;word-break:break-all}</style></head>
-<body><div id="actions"></div><pre id="out">Đang thăm dò…</pre>
+<body><div id="actions"></div><div id="status">Chưa mở ứng dụng nào.</div><pre id="out">Đang thăm dò…</pre>
 <script src="probe.js"></script>
 <script>
 (function () {
-  var out = document.getElementById('out'), actions = document.getElementById('actions');
+  var status = document.getElementById('status'), out = document.getElementById('out'), actions = document.getElementById('actions');
   CytProbe.run({tizen: window.tizen, webapis: window.webapis, b2bapis: window.b2bapis}, function (results) {
     out.textContent = results.map(function (r) { return r.status + ' ' + r.name + ': ' + r.detail; }).join('\n');
     console.log('CYTPROBE ' + JSON.stringify(results));
@@ -17,9 +17,10 @@ pre{white-space:pre-wrap;word-break:break-all}</style></head>
     b.textContent = 'Mở ' + id;
     b.onclick = function () {
       try {
-        window.tizen.application.launch(id, function () { console.log('CYTPROBE launch ok ' + id); },
-          function (e) { console.log('CYTPROBE launch fail ' + id + ' ' + (e && e.name)); });
-      } catch (e) { console.log('CYTPROBE launch throw ' + id + ' ' + (e && e.name)); }
+        status.textContent = 'Đang mở ' + id + '…';
+        window.tizen.application.launch(id, function () { status.textContent = 'OK ' + id; },
+          function (e) { status.textContent = 'LỖI ' + id + ': ' + (e && e.name) + ' ' + (e && e.message); });
+      } catch (e) { status.textContent = 'NGOẠI LỆ ' + id + ': ' + (e && e.name) + ' ' + (e && e.message); }
     };
     actions.appendChild(b);
   });

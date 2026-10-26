@@ -16,7 +16,13 @@
     catch (error) { results.push({name: name, status: 'error', detail: describe(error)}); }
   }
   function methods(object) {
-    return names(object).filter(function (key) { return typeof object[key] === 'function'; });
+    var found = [], key;
+    try {
+      for (key in object) {
+        try { if (typeof object[key] === 'function') found.push(key); } catch (error) { /* skip getter */ }
+      }
+    } catch (error) { return found; }
+    return found.sort();
   }
   function nextIndex(count, index, key) {
     if (!count) return -1;
@@ -78,8 +84,8 @@
     }
     if (tizen && tizen.tvwindow && tizen.tvwindow.getSource) {
       probeAsync('tvwindow.getSource', function (ok, fail) {
-        var value = tizen.tvwindow.getSource(function (source) { ok(JSON.stringify(source)); }, fail);
-        if (value !== undefined) ok(JSON.stringify(value));
+        var value = tizen.tvwindow.getSource();
+        ok(JSON.stringify(value));
       });
     }
     registering = false;
