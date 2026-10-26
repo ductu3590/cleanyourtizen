@@ -151,3 +151,9 @@ test('device profile records that Home, Power and brand hotkeys cannot be taken 
   assert.match(profile.evidence.homeKeyAndHotkeys, /^not-registrable/);
   assert.equal(profile.artModeRequired, true);
 });
+test('device profile records which apps are removable and that VieON cannot be replaced', () => {
+  const profile = JSON.parse(fs.readFileSync(path.join(__dirname, '../profiles/qa55ls03b.json'), 'utf8'));
+  assert.match(profile.evidence.debloat, /Hot IPTV removed and verified/);
+  assert.match(profile.evidence.debloat, /VieON/);
+  assert.match(profile.evidence.debloat, /can not uninstall app/);
+});

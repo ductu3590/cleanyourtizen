@@ -6,7 +6,7 @@
   "architecture": "32",
   "evidence": {
     "sdbInventory": "verified 2026-10-26",
-    "debloat": "not-tested",
+    "debloat": "partial 2026-10-26: Hot IPTV removed and verified; VieON, VTV Giai Tri, TV360, VTVcab ON and Galaxy Play are preinstalled and refuse removal with \"can not uninstall app\" (no inventory change)",
     "launcherInstall": "verified 2026-10-26: signed with own Samsung author/distributor certificates, installed with tizen install",
     "physicalRemote": "partial 2026-10-26: D-pad, OK and Back verified in launcher; Home and Power are not in tvinputdevice.getSupportedKeys",
     "artMode": "not-tested",
