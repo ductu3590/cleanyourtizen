@@ -251,6 +251,36 @@ class BuildTests(unittest.TestCase):
             with self.assertRaises(core.Refused):
                 check_signed_widget(widget, config)
 
+    def test_build_bundles_validated_wallpapers_into_the_widget_and_config(self):
+        import json
+        config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        with tempfile.TemporaryDirectory() as directory:
+            pictures = Path(directory) / 'pictures'
+            pictures.mkdir()
+            (pictures / 'b-night.jpg').write_bytes(b'JPEGDATA')
+            (pictures / 'a-day.png').write_bytes(b'PNGDATA')
+            widget = build(config, Path(directory) / 'stage', pictures)
+            stage = Path(directory) / 'stage'
+            self.assertTrue((stage / 'wallpapers' / 'a-day.png').is_file())
+            text = (stage / 'config.js').read_text(encoding='utf-8')
+            self.assertEqual(json.loads(text[text.index('{'):text.rindex('}') + 1])['wallpapers'], ['a-day.png', 'b-night.jpg'])
+            with zipfile.ZipFile(widget) as archive:
+                self.assertIn('wallpapers/b-night.jpg', archive.namelist())
+
+    def test_build_refuses_unsafe_or_oversized_wallpapers(self):
+        config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        cases = {'bad name.jpg': b'x', 'script.svg': b'x', 'huge.jpg': b'x' * 2_500_001}
+        for name, data in cases.items():
+            with tempfile.TemporaryDirectory() as directory:
+                pictures = Path(directory) / 'pictures'
+                pictures.mkdir()
+                (pictures / name).write_bytes(data)
+                with self.assertRaises(core.Refused):
+                    build(config, Path(directory) / 'stage', pictures)
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(core.Refused):
+                build(config, Path(directory) / 'stage', Path(directory) / 'missing')
+
     def test_source_tree_cannot_be_a_build_destination(self):
         with self.assertRaises(core.Refused):
             build({'package': 'CyTizen001', 'appId': 'CyTizen001.Home'}, ROOT / 'cyt')

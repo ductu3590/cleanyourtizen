@@ -63,6 +63,15 @@
     if (key === 'ArrowRight') current += delta;
     return Math.max(0, Math.min(100, current));
   }
-  return {nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
+  function wallpaperFor(names, date) {
+    var list = (Array.isArray(names) ? names : []).filter(function (name) {
+      return typeof name === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\.(jpe?g|png)$/i.test(name);
+    });
+    if (!list.length) return null;
+    var when = date instanceof Date && !isNaN(date) ? date : new Date();
+    var day = Math.floor(Date.UTC(when.getFullYear(), when.getMonth(), when.getDate()) / 86400000);
+    return 'wallpapers/' + list[((day % list.length) + list.length) % list.length];
+  }
+  return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
     wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume};
 }));

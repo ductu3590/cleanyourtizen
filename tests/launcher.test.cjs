@@ -99,3 +99,21 @@ test('launcher input list is limited to the configured sources and Back leaves v
   const cfg = fs.readFileSync(path.join(__dirname, '../launcher/config.js'), 'utf8');
   assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4\}\]/);
 });
+
+test('wallpaper changes once per local day, cycles through the list and is stable within a day', () => {
+  const names = ['a.jpg', 'b.jpg', 'c.png'];
+  const morning = core.wallpaperFor(names, new Date(2026, 9, 26, 0, 1));
+  const night = core.wallpaperFor(names, new Date(2026, 9, 26, 23, 59));
+  assert.equal(morning, night);
+  const days = [0, 1, 2, 3].map((n) => core.wallpaperFor(names, new Date(2026, 9, 26 + n, 12)));
+  assert.equal(new Set(days.slice(0, 3)).size, 3);
+  assert.equal(days[0], days[3]);
+  assert.ok(days.every((url) => url.startsWith('wallpapers/')));
+});
+test('wallpaper list ignores unsafe names and works with no list', () => {
+  assert.equal(core.wallpaperFor(undefined, new Date()), null);
+  assert.equal(core.wallpaperFor([], new Date()), null);
+  assert.equal(core.wallpaperFor(['../x.jpg', 'a b.jpg', 'x.svg', 'x.jpg"); alert(1);//.jpg', 5, null], new Date()), null);
+  assert.equal(core.wallpaperFor(['../x.jpg', 'ok.JPG'], new Date(2026, 0, 1)), 'wallpapers/ok.JPG');
+  assert.match(core.wallpaperFor(['ok.jpg'], 'not a date'), /^wallpapers\/ok\.jpg$/);
+});

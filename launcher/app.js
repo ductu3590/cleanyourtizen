@@ -246,14 +246,18 @@
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { clearInterval(clockTimer); clockTimer = null; }
-    else { clock(); readWifi(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
+    else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
   });
-  function tick() { clock(); readWifi(); }
-  clock(); readWifi(); clockTimer = setInterval(tick, 30000);
-  if (config.wallpaper) {
-    document.body.style.backgroundImage = 'url("' + String(config.wallpaper).replace(/[^A-Za-z0-9_.\-]/g, '') + '")';
+  var shownWallpaper = null;
+  function wallpaper() {
+    var url = core.wallpaperFor(config.wallpapers, new Date());
+    if (!url || url === shownWallpaper) return;
+    shownWallpaper = url;
+    document.body.style.backgroundImage = 'url("' + url + '")';
     document.body.classList.add('has-wallpaper');
   }
+  function tick() { clock(); readWifi(); wallpaper(); }
+  clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   render(); (dock.firstChild || $('btn-settings')).focus();
 }());

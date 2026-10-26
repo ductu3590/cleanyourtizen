@@ -100,7 +100,30 @@ def widget_manifest(config):
 </widget>'''
 
 
-def build(config, destination):
+WALLPAPER_NAME = r'[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\.(?:jpe?g|png)'
+WALLPAPER_MAX_BYTES = 2_500_000
+WALLPAPER_MAX_COUNT = 60
+
+
+def collect_wallpapers(directory):
+    import re
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise Refused('Wallpaper directory does not exist')
+    files = sorted(item for item in directory.iterdir() if item.is_file())
+    if not files:
+        raise Refused('Wallpaper directory has no files')
+    if len(files) > WALLPAPER_MAX_COUNT:
+        raise Refused('Too many wallpapers; keep at most %d' % WALLPAPER_MAX_COUNT)
+    for item in files:
+        if not re.fullmatch(WALLPAPER_NAME, item.name, re.IGNORECASE):
+            raise Refused('Wallpaper name must be 1-80 letters, digits, dot, dash or underscore ending in jpg or png: ' + item.name)
+        if item.stat().st_size > WALLPAPER_MAX_BYTES:
+            raise Refused('Wallpaper is larger than 2.5 MB; resize it to 1920x1080 first: ' + item.name)
+    return files
+
+
+def build(config, destination, wallpapers=None):
     import shutil
     import re
     if not re.fullmatch('[A-Za-z0-9]{10}', config.get('package', '')) or config.get('appId') != config['package'] + '.Home':
@@ -110,10 +133,19 @@ def build(config, destination):
         raise Refused('Build destination exists; choose a fresh directory')
     if destination == ROOT or ROOT in destination.parents and destination.parts[len(ROOT.parts)] not in ('.local', 'dist', 'output'):
         raise Refused('Build into dist/, .local/, output/, or a directory outside the source tree')
+    files = collect_wallpapers(wallpapers) if wallpapers else []
+    config = dict(config)
+    config.pop('wallpapers', None)
+    if files:
+        config['wallpapers'] = [item.name for item in files]
     destination.mkdir(parents=True)
     for source in (ROOT / 'launcher').iterdir():
         if source.is_file():
             shutil.copyfile(source, destination / source.name)
+    if files:
+        (destination / 'wallpapers').mkdir()
+        for item in files:
+            shutil.copyfile(item, destination / 'wallpapers' / item.name)
     (destination / 'config.xml').write_text(widget_manifest(config), encoding='utf-8')
     (destination / 'config.js').write_text('window.CYT_CONFIG = ' + json.dumps(config, ensure_ascii=True) + ';\n', encoding='utf-8')
     # Unsigned reproducible bundle for inspection, NOT something we pretend can be installed.
@@ -121,9 +153,10 @@ def build(config, destination):
     if widget.exists():
         raise Refused('Unsigned artifact already exists; preserve it and use a fresh build name')
     with zipfile.ZipFile(widget, 'x', zipfile.ZIP_DEFLATED) as archive:
-        for file in sorted(destination.iterdir()):
+        for file in sorted(destination.rglob('*')):
             if file.is_file():
-                archive.writestr(zipfile.ZipInfo(file.name, (2020, 1, 1, 0, 0, 0)), file.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
+                name = file.relative_to(destination).as_posix()
+                archive.writestr(zipfile.ZipInfo(name, (2020, 1, 1, 0, 0, 0)), file.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
     return widget
 
 
@@ -173,6 +206,7 @@ def parser():
     bundle = commands.add_parser('build', help='Build launcher staging directory and UNSIGNED widget')
     bundle.add_argument('--config', required=True)
     bundle.add_argument('--out', required=True)
+    bundle.add_argument('--wallpapers', help='Directory of 1920x1080 jpg/png wallpapers; one is shown per day')
     for operation in ('install', 'launch'):
         sub = commands.add_parser(operation)
         sub.add_argument('--snapshot', required=True)
@@ -222,7 +256,7 @@ def main(argv=None):
         save_new(args.out, launcher_config(read(args.snapshot), args.apps, args.package, args.name))
         print('Saved private launcher config:', args.out)
     elif args.command == 'build':
-        print('UNSIGNED, NOT INSTALLABLE:', build(read(args.config), args.out))
+        print('UNSIGNED, NOT INSTALLABLE:', build(read(args.config), args.out, args.wallpapers))
     elif args.command in ('install', 'launch'):
         snap, config = read(args.snapshot), read(args.config)
         from .core import validate_snapshot

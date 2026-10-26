@@ -3,7 +3,9 @@ html,body{margin:0;width:100%;min-height:100%;font-family:Arial,Helvetica,sans-s
 body{overflow:hidden;background:
   radial-gradient(ellipse 22% 14% at 50% 42%,#ffe9b0 0,#ffb55a66 40%,transparent 100%),
   linear-gradient(180deg,#1a2342 0%,#3c4a78 26%,#c9855a 46%,#f1b36b 54%,#38466e 56%,#18213d 76%,#0a0f1e 100%)}
-body.has-wallpaper{background-size:cover;background-position:center}
+body.has-wallpaper{background-size:cover;background-position:center;background-color:#0b1020}
+body.has-wallpaper::before{content:'';position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;background:linear-gradient(180deg,rgba(6,10,24,.55) 0%,rgba(6,10,24,.12) 34%,rgba(6,10,24,.12) 58%,rgba(6,10,24,.7) 100%)}
+body.video::before{display:none}
 html.video,html.video body,body.video{background:transparent!important}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
 [hidden]{display:none!important}
