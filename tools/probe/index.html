@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>CytProbe</title>
+<style>body{margin:0;padding:32px;background:#111;color:#eee;font:22px/1.4 monospace}
+button{font:inherit;margin:6px;padding:8px 16px}button:focus{outline:4px solid #5af}
+pre{white-space:pre-wrap;word-break:break-all}</style></head>
+<body><div id="actions"></div><pre id="out">Đang thăm dò…</pre>
+<script src="probe.js"></script>
+<script>
+(function () {
+  var out = document.getElementById('out'), actions = document.getElementById('actions');
+  CytProbe.run({tizen: window.tizen, webapis: window.webapis, b2bapis: window.b2bapis}, function (results) {
+    out.textContent = results.map(function (r) { return r.status + ' ' + r.name + ': ' + r.detail; }).join('\n');
+    console.log('CYTPROBE ' + JSON.stringify(results));
+  });
+  CytProbe.TARGET_APPS.forEach(function (id) {
+    var b = document.createElement('button');
+    b.textContent = 'Mở ' + id;
+    b.onclick = function () {
+      try {
+        window.tizen.application.launch(id, function () { console.log('CYTPROBE launch ok ' + id); },
+          function (e) { console.log('CYTPROBE launch fail ' + id + ' ' + (e && e.name)); });
+      } catch (e) { console.log('CYTPROBE launch throw ' + id + ' ' + (e && e.name)); }
+    };
+    actions.appendChild(b);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.keyCode === 10009) {
+      try { window.tizen.application.getCurrentApplication().exit(); } catch (x) {}
+    }
+  });
+  var first = actions.querySelector('button');
+  if (first) first.focus();
+}());
+</script></body></html>
