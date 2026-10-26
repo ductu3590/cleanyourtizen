@@ -15,12 +15,27 @@
     try { results.push({name: name, status: 'ok', detail: fn()}); }
     catch (error) { results.push({name: name, status: 'error', detail: describe(error)}); }
   }
+  function methods(object) {
+    return names(object).filter(function (key) { return typeof object[key] === 'function'; });
+  }
+  function nextIndex(count, index, key) {
+    if (!count) return -1;
+    if (key === 'ArrowRight' || key === 'ArrowDown') return Math.min(count - 1, index + 1);
+    if (key === 'ArrowLeft' || key === 'ArrowUp') return Math.max(0, index - 1);
+    return index;
+  }
   function sync(env) {
     var results = [], tizen = env.tizen, webapis = env.webapis;
     safe(results, 'tizen', function () { return tizen ? names(tizen).join(',') : 'missing'; });
     safe(results, 'webapis', function () { return webapis ? names(webapis).join(',') : 'missing'; });
     safe(results, 'b2bapis', function () { return env.b2bapis ? names(env.b2bapis).join(',') : 'missing'; });
     safe(results, 'tvinputdevice', function () { return tizen && tizen.tvinputdevice ? 'present' : 'missing'; });
+    [['tizen.tvwindow', tizen && tizen.tvwindow], ['tizen.tvdisplaycontrol', tizen && tizen.tvdisplaycontrol],
+      ['tizen.tvaudiocontrol', tizen && tizen.tvaudiocontrol], ['tizen.tvinfo', tizen && tizen.tvinfo],
+      ['webapis.tvinfo', webapis && webapis.tvinfo], ['webapis.unipicture', webapis && webapis.unipicture],
+      ['webapis.productinfo', webapis && webapis.productinfo]].forEach(function (pair) {
+      safe(results, pair[0] + '()', function () { return pair[1] ? methods(pair[1]).join(',') : 'missing'; });
+    });
     return results;
   }
   function run(env, done) {
@@ -61,8 +76,14 @@
         }, fail);
       });
     }
+    if (tizen && tizen.tvwindow && tizen.tvwindow.getSource) {
+      probeAsync('tvwindow.getSource', function (ok, fail) {
+        var value = tizen.tvwindow.getSource(function (source) { ok(JSON.stringify(source)); }, fail);
+        if (value !== undefined) ok(JSON.stringify(value));
+      });
+    }
     registering = false;
     finish();
   }
-  return {run: run, sync: sync, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
+  return {run: run, sync: sync, nextIndex: nextIndex, methods: methods, TARGET_APPS: TARGET_APPS, PROPERTIES: PROPERTIES};
 }));

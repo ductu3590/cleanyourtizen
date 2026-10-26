@@ -50,3 +50,22 @@ test('probe has its own identity and only the launch privilege for opening apps'
   assert.doesNotMatch(xml, /CyTizen001/);
   assert.match(xml, /privilege\/application\.launch/);
 });
+
+test('probe focus navigation clamps at both ends and ignores other keys', () => {
+  assert.strictEqual(probe.nextIndex(5, 0, 'ArrowLeft'), 0);
+  assert.strictEqual(probe.nextIndex(5, 0, 'ArrowRight'), 1);
+  assert.strictEqual(probe.nextIndex(5, 4, 'ArrowRight'), 4);
+  assert.strictEqual(probe.nextIndex(5, 2, 'Enter'), 2);
+  assert.strictEqual(probe.nextIndex(0, 0, 'ArrowRight'), -1);
+});
+
+test('probe lists methods of TV APIs and reads the current window source', (t, done) => {
+  const tizen = {tvwindow: {getSource(ok) { ok({type: 'HDMI', number: 1}); }, setSource() {}, size: 3}};
+  probe.run({tizen}, (results) => {
+    const by = byName(results);
+    assert.strictEqual(by['tizen.tvwindow()'].detail, 'getSource,setSource');
+    assert.match(by['tvwindow.getSource'].detail, /HDMI/);
+    assert.strictEqual(by['webapis.unipicture()'].detail, 'missing');
+    done();
+  });
+});

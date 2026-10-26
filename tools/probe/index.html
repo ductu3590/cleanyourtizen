@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><title>CytProbe</title>
-<style>body{margin:0;padding:32px;background:#111;color:#eee;font:22px/1.4 monospace}
+<style>body{margin:0;padding:32px;background:#111;color:#eee;font:16px/1.3 monospace}
 button{font:inherit;margin:6px;padding:8px 16px}button:focus{outline:4px solid #5af}
 pre{white-space:pre-wrap;word-break:break-all}</style></head>
 <body><div id="actions"></div><pre id="out">Đang thăm dò…</pre>
@@ -24,6 +24,11 @@ pre{white-space:pre-wrap;word-break:break-all}</style></head>
     actions.appendChild(b);
   });
   document.addEventListener('keydown', function (e) {
+    var buttons = Array.prototype.slice.call(actions.querySelectorAll('button'));
+    var at = buttons.indexOf(document.activeElement);
+    var to = CytProbe.nextIndex(buttons.length, at < 0 ? 0 : at, e.key);
+    if (to !== at && buttons[to] && /^Arrow/.test(e.key)) buttons[to].focus();
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.click) document.activeElement.click();
     if (e.key === 'Escape' || e.keyCode === 10009) {
       try { window.tizen.application.getCurrentApplication().exit(); } catch (x) {}
     }
