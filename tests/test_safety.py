@@ -281,6 +281,25 @@ class BuildTests(unittest.TestCase):
             with self.assertRaises(core.Refused):
                 build(config, Path(directory) / 'stage', Path(directory) / 'missing')
 
+    def test_install_is_only_reported_successful_when_the_app_is_in_the_inventory(self):
+        from cyt.cli import install_and_verify
+
+        class Fake:
+            def __init__(self, installed):
+                self.installed = installed
+
+            def install(self, widget):
+                return 'pushed'
+
+            def apps(self):
+                return [{'id': 'CyTizen001.Home'}] if self.installed else [{'id': 'other.App'}]
+
+        config = {'appId': 'CyTizen001.Home'}
+        self.assertEqual(install_and_verify(Fake(True), 'x.wgt', config), 'pushed')
+        with self.assertRaises(core.Refused) as raised:
+            install_and_verify(Fake(False), 'x.wgt', config)
+        self.assertIn('tizen install', str(raised.exception))
+
     def test_source_tree_cannot_be_a_build_destination(self):
         with self.assertRaises(core.Refused):
             build({'package': 'CyTizen001', 'appId': 'CyTizen001.Home'}, ROOT / 'cyt')

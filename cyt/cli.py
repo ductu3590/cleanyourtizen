@@ -160,6 +160,16 @@ def build(config, destination, wallpapers=None):
     return widget
 
 
+def install_and_verify(device, widget, config):
+    """`sdb install` can push the file and exit 0 without installing it, so trust only the app inventory."""
+    output = device.install(widget)
+    if config['appId'] not in {app['id'] for app in device.apps()}:
+        raise Refused('The widget was sent to the TV but ' + config['appId'] + ' is not installed. '
+                      'Install the same signed .wgt with the official `tizen install -n NAME.wgt -s HOST:26101 -- DIR`, '
+                      'then run `cyt launch`.')
+    return output
+
+
 def check_signed_widget(widget, config):
     with zipfile.ZipFile(widget) as archive:
         names = archive.namelist()
@@ -267,7 +277,7 @@ def main(argv=None):
             raise Refused('Wrong TV; operation refused')
         if args.command == 'install':
             check_signed_widget(args.widget, config)
-            print(device.install(args.widget))
+            print(install_and_verify(device, args.widget, config))
         else:
             if config['appId'] not in {app['id'] for app in device.apps()}:
                 raise Refused('Launcher is not installed')
