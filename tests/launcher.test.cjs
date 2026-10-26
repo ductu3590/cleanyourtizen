@@ -157,3 +157,9 @@ test('device profile records which apps are removable and that VieON cannot be r
   assert.match(profile.evidence.debloat, /VieON/);
   assert.match(profile.evidence.debloat, /can not uninstall app/);
 });
+test('device profile records that the vendor vd_appuninstall command is also refused', () => {
+  const profile = JSON.parse(fs.readFileSync(path.join(__dirname, '../profiles/qa55ls03b.json'), 'utf8'));
+  assert.match(profile.evidence.vdAppUninstall, /vd_appuninstall|numeric app id/);
+  assert.match(profile.evidence.vdAppUninstall, /can not uninstall app/);
+  assert.match(profile.evidence.vdAppUninstall, /no inventory change/);
+});
