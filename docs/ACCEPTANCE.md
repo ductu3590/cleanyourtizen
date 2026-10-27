@@ -29,7 +29,8 @@ Use exact model/firmware and a private session directory. These checks are separ
 - [ ] Applist shows `<package>.Service` next to the launcher.
 - [ ] Home pressed over the launcher reopens it within ~1 s.
 - [ ] Power into Art Mode is not interrupted; Settings and Source menus stay open.
-- [ ] An app opened from the launcher is not interrupted.
+- [ ] An app opened from the launcher is not interrupted, also after several minutes.
+- [ ] Home pressed inside an app opened from the launcher reopens the launcher; Power there still enters Art Mode.
 - [ ] **Samsung Home ↗** and Back from the home screen stay on Samsung Home for the pause period.
 - [ ] Input shown inside the launcher (HDMI) is not interrupted.
 - [ ] Diagnostic builds (`reportUrl`) are replaced by a build without it.

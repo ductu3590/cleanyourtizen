@@ -315,6 +315,7 @@ class BuildTests(unittest.TestCase):
         # Default build only observes; relaunching over Samsung Home is an explicit opt-in.
         self.assertEqual(settings['mode'], 'observe')
         self.assertEqual(settings['launcherId'], 'CyTizen001.Home')
+        self.assertEqual(settings['homeId'], config.get('samsungHome') or 'com.samsung.tv.csfs')
         self.assertIn('<tizen:service id="CyTizen001.Service">', manifest)
         self.assertIn('"serviceId": "CyTizen001.Service"', page)
         self.assertIsNone(settings['reportUrl'])

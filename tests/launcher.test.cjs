@@ -279,36 +279,60 @@ test('service commands are read from app control data only', () => {
   assert.deepEqual(watch.readCommand(null),['','']);
   assert.deepEqual(watch.readCommand({data:[{key:'cmd',value:[]}]}),['','']);
 });
-function following(visibility, tv) {
-  const g=guard({isVisible:(id,done)=>done(visibility.shift())},tv);
-  assert.equal(g.watcher.command('opened-app','ZTpEFWgfa9.FPTPlay'),'following');
+const APP='ZTpEFWgfa9.FPTPlay', IN_APP={home:false,app:'running'}, HOME_OVER_APP={home:true,app:'running'};
+function following(fronts, tv) {
+  const g=guard({front:(id,done)=>done(fronts.length ? fronts.shift() : IN_APP)},tv);
+  assert.equal(g.watcher.command('opened-app',APP),'following');
   g.watcher.command('ui-hidden');
   return g;
 }
 test('Home pressed inside a followed app returns to the launcher', () => {
-  const {state}=following([false,true,true,false]);
-  state.fire(); state.fire(); state.fire(); assert.deepEqual(state.launched,[]);
-  state.fire(); // app no longer visible -> delayed check scheduled
+  const {state}=following([IN_APP,IN_APP,HOME_OVER_APP]);
+  state.fire(); state.fire(); assert.deepEqual(state.launched,[]);
+  state.fire(); // Samsung Home entered cpu/running -> delayed check scheduled
   state.fire(); assert.deepEqual(state.launched,['CyTizen001.Home']);
 });
-test('an app that never reports visibility is not followed forever', () => {
-  const g=following([false,false]); g.state.fire(); g.state.time+=31000; g.state.fire();
-  assert.deepEqual(g.state.timers.filter(Boolean),[]); assert.deepEqual(g.state.launched,[]);
+test('a followed app is followed while it runs, and dropped when it exits or the TV state is unreadable', () => {
+  const g=following([]); for (let i=0;i<100;i+=1) { g.state.time+=60000; g.state.fire(); }
+  assert.equal(g.state.timers.filter(Boolean).length,1); // still following after 100 minutes in the app
+  const gone=following([{home:false,app:'gone'}]); gone.state.fire();
+  assert.deepEqual(gone.state.timers.filter(Boolean),[]); assert.deepEqual(gone.state.launched,[]);
+  const unknown=following([null,null]); unknown.state.fire(); unknown.state.time+=31000; unknown.state.fire();
+  assert.deepEqual(unknown.state.timers.filter(Boolean),[]); assert.deepEqual(unknown.state.launched,[]);
 });
 test('Art Mode during a followed app keeps following without launching', () => {
-  const vis=[true,false,false,true,false];
-  const g=following(vis,{powerState:'on',launcherVisible:false,contexts:watch.ART_SIGNALS});
-  g.state.fire(); g.state.fire(); g.state.fire(); // seen, left, check -> art-mode
+  const fronts=[HOME_OVER_APP];
+  const g=following(fronts,{powerState:'on',launcherVisible:false,contexts:watch.ART_SIGNALS});
+  g.state.fire(); g.state.fire(); // Home seen, check -> art-mode
   assert.deepEqual(g.state.launched,[]);
-  g.state.time+=3600000; g.state.fire(); // still waiting after an hour of Art Mode
-  g.state.tv=HOME; g.state.fire(); g.state.fire(); g.state.fire();
+  g.state.time+=3600000; g.state.fire(); // still following after an hour of Art Mode
+  assert.deepEqual(g.state.launched,[]);
+  g.state.tv=HOME; fronts.push(HOME_OVER_APP); g.state.fire(); g.state.fire();
   assert.deepEqual(g.state.launched,['CyTizen001.Home']);
 });
 test('returning to the launcher stops following', () => {
-  const g=following([true]); g.watcher.command('ui-visible');
+  const g=following([IN_APP]); g.watcher.command('ui-visible');
   assert.deepEqual(g.state.timers.filter(Boolean),[]);
 });
-test('telling the service always continues, even when it fails or never answers', () => {
+// Recorded on QA55LS03B: Home over FPT Play puts Samsung Home (csfs) into cpu/running while FPT stays there.
+const CTX=[{appId:'com.samsung.tv.csfs',id:407},{appId:'org.tizen.welcome-mode',id:1137},{appId:APP,id:17526},
+  {appId:'CyTizen001.Home',id:17214},{appId:'com.samsung.tv.cobalt-yt',id:24674},{appId:'IkWsFHtOY9.StremioService',id:23787}];
+test('Samsung Home in cpu/running is read as Home pressed over the followed app', () => {
+  assert.deepEqual(watch.frontOf(CTX,['1137','17526',''],APP,'com.samsung.tv.csfs'),{home:false,app:'running'});
+  assert.deepEqual(watch.frontOf(CTX,['407','1137','17526'],APP,'com.samsung.tv.csfs'),{home:true,app:'running'});
+  assert.deepEqual(watch.frontOf(CTX,['1137','17214'],APP,'com.samsung.tv.csfs'),{home:false,app:'background'});
+  assert.deepEqual(watch.frontOf(CTX,['1137'],'IkWsFHtOY9.Stremio','com.samsung.tv.csfs'),{home:false,app:'gone'});
+  assert.equal(watch.frontOf(CTX,null,APP,'com.samsung.tv.csfs'),null);
+});
+test('a media app in front blocks the relaunch unless Samsung Home covers it', () => {
+  const other=(running)=>watch.otherInFront(CTX,running,'com.samsung.tv.csfs','CyTizen001.Home');
+  assert.equal(other(['1137','24674']),'com.samsung.tv.cobalt-yt'); // YouTube cast over the launcher
+  assert.equal(other(['1137','17526']),APP);
+  assert.equal(other(['407','1137','17526']),null); // Home pressed over the app
+  assert.equal(other(['1137','17214']),null); // only the launcher
+  assert.equal(other(['407','1137']),null);
+  assert.equal(other(null),undefined);
+});test('telling the service always continues, even when it fails or never answers', () => {
   function Control(op,uri,mime,cat,data){this.data=data;}
   function Data(key,value){this.key=key;this.value=value;}
   let sent; let calls=0;

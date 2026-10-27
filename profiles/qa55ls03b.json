@@ -22,7 +22,9 @@
     "addAppStatusChangeListener": "registers but never fires (all apps or a single ID)",
     "restVisibility": "127.0.0.1:8001/api/v2/applications/<id> reports store apps only; YouTube (cobalt), FPT Play and Stremio always visible:false, Nuvio TV reports correctly",
     "artSignalDelay": "wifi-motion-service-app appears ~220-370 ms after the launcher is hidden; delayMs must stay >= 300",
-    "knownGaps": ["YouTube cast while the launcher is in front is pulled back", "Home pressed inside an app that never reports visible opens Samsung Home", "cold boot needs Autorun Last App; on-boot is not available"]
+    "cpuCgroups": "verified 2026-10-27: /sys/fs/cgroup/cpu/running and /background cgroup.procs are readable by a web service; the on-screen app is in running; Home over FPT Play or Stremio moves com.samsung.tv.csfs into running while the app stays there; /proc/<pid> of other apps is EACCES",
+    "homeFromApps": "verified 2026-10-27 by owner: Home inside FPT Play and Stremio returns to the launcher; Art Mode from an app is left alone",
+    "knownGaps": ["cold boot needs Autorun Last App; on-boot is not available"]
   },
   "artModeRequired": true,
   "notes": "Inventory read on one Vietnamese The Frame. No claim for another model, region or firmware. This profile enables no privileged operations."

@@ -99,7 +99,11 @@ def service_settings(config):
     # Below ~300 ms the Art Mode signal may not exist yet; see profiles/qa55ls03b.json.
     if not 300 <= timing['delayMs'] <= 30000 or timing['cooldownMs'] < 2000:
         raise Refused('Service timing would allow a relaunch loop')
-    return dict(timing, mode=mode, launcherId=config['appId'], reportUrl=report)
+    # Samsung Home's process entering cpu/running is how the service sees Home pressed over another app.
+    home = config.get('samsungHome') or 'com.samsung.tv.csfs'
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{2,99}', home):
+        raise Refused('Invalid Samsung Home app ID')
+    return dict(timing, mode=mode, launcherId=config['appId'], homeId=home, reportUrl=report)
 
 
 def widget_manifest(config):

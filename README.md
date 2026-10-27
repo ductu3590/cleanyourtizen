@@ -168,15 +168,17 @@ launcher JSON:
 
 The default `observe` mode never launches anything. In `guard` mode the launcher page tells the service
 when it is hidden; after `delayMs` (default 2.5 s, minimum 0.3 s) the service reads the TV's own REST API
-on `127.0.0.1:8001` and running app contexts, then reopens the launcher unless the TV is not `on`,
-Art Mode is running, the launcher is visible again, or a store app reports `visible`. Apps opened from
-the launcher are not interrupted; **Samsung Home ↗** and Back pause the service for `pauseMs` (10 min).
-A cooldown blocks loops. `reportUrl` (private LAN HTTP only) sends diagnostic events to a computer;
-leave it out for normal use.
+on `127.0.0.1:8001`, running app contexts and `/sys/fs/cgroup/cpu/running` (the CPU cgroup in which
+the TV keeps what is on screen), then reopens the launcher unless the TV is not `on`, Art Mode is running,
+the launcher is visible again, or a media app is in front (for example YouTube cast from a phone).
+Apps opened from the launcher are followed while they run: when Samsung Home enters `cpu/running`
+(Home pressed inside the app), the launcher returns after the same delay. **Samsung Home ↗** and Back
+pause the service for `pauseMs` (10 min). A cooldown blocks loops. `reportUrl` (private LAN HTTP only)
+sends diagnostic events to a computer; leave it out for normal use.
 
-Known limits on QA55LS03B / Tizen 6.5: `addAppStatusChangeListener` never fires; Home pressed inside an
-app opens Samsung Home unless that app reports `visible` (Nuvio TV does; FPT Play, Stremio, YouTube do not);
-YouTube cast while the launcher is in front is pulled back; `on-boot` services are unavailable on consumer TVs.
+Known limits on QA55LS03B / Tizen 6.5: `addAppStatusChangeListener` never fires and the REST `visible`
+flag is wrong for most apps, hence the cgroup signal; `/proc` of other apps is not readable;
+`on-boot` services are unavailable on consumer TVs (use *Autorun Last App*).
 
 ## Test and contribute
 

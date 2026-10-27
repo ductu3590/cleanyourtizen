@@ -1,7 +1,8 @@
 // Pure decision logic for the background service; no Tizen calls, so it is unit-testable.
 // On this Frame (Tizen 6.5) addAppStatusChangeListener never fires, so the launcher page reports
 // its own visibility and the service decides, after a short delay, whether Samsung Home took over.
-// Apps opened from the launcher are followed through the REST visibility flag instead.
+// Apps opened from the launcher are followed through the TV's CPU cgroups: Samsung Home moves into
+// cpu/running when Home is pressed over an app, even when the app itself never reports `visible`.
 'use strict';
 
 // Apps that only run while The Frame shows Art Mode (observed on QA55LS03B).
@@ -16,6 +17,34 @@ function decide(state) {
     if (running.indexOf(ART_SIGNALS[index]) >= 0) return 'art-mode';
   }
   return 'launch';
+}
+
+// running: PIDs listed in /sys/fs/cgroup/cpu/running (null when unreadable); contexts: [{appId, id: pid}].
+function isRunning(running, context) { return running.indexOf(String(context.id)) >= 0; }
+
+// What the followed app and Samsung Home are doing; null when the cgroup cannot be read.
+function frontOf(contexts, running, appId, homeId) {
+  if (!running) return null;
+  var state = {home: false, app: 'gone'};
+  contexts.forEach(function (context) {
+    if (context.appId === homeId && isRunning(running, context)) state.home = true;
+    if (context.appId === appId) state.app = isRunning(running, context) || state.app === 'running' ? 'running' : 'background';
+  });
+  return state;
+}
+
+// A media app in front (e.g. YouTube cast from a phone) means "leave it alone"; Samsung Home in front covers it.
+// Returns the app ID, null when none, or undefined when the cgroup cannot be read.
+function otherInFront(contexts, running, homeId, launcherId) {
+  if (!running) return undefined;
+  var own = launcherId.split('.')[0] + '.', found = null;
+  for (var index = 0; index < contexts.length; index += 1) {
+    var context = contexts[index], id = context.appId;
+    if (!isRunning(running, context)) continue;
+    if (id === homeId) return null;
+    if (!found && id.indexOf(own) !== 0 && (/^[A-Za-z0-9]{10}\./.test(id) || /cobalt|netflix/.test(id))) found = id;
+  }
+  return found;
 }
 
 function createWatcher(options) {
@@ -44,16 +73,17 @@ function createWatcher(options) {
   }
   function schedule(appId) { cancel(); pending = options.setTimer(function () { check(appId); }, delayMs); }
   function startFollow(id, patient) {
-    var current = follow = {id: id, seen: false, since: patient ? Infinity : now(), timer: null};
+    var current = follow = {id: id, since: patient ? Infinity : now(), timer: null};
     current.timer = options.setTimer(function () { tick(current); }, pollMs);
   }
-  // Polls one app's visibility while it is in front; when it disappears, Home (or exit) took over.
+  // Polls what is in front while a launched app runs; Samsung Home in front means Home was pressed.
   function tick(current) {
     current.timer = null;
-    options.isVisible(current.id, function (visible) {
+    options.front(current.id, function (front) {
       if (follow !== current) return; // stopped or replaced while the request was in flight
-      if (visible) current.seen = true;
-      else if (current.seen) { stopFollow(); report('app-left', current.id); schedule(current.id); return; }
+      if (front && front.home) { stopFollow(); report('app-left', current.id); schedule(current.id); return; }
+      if (front && front.app === 'gone') { stopFollow(); report('follow-stopped', current.id); return; }
+      if (front) current.since = Math.max(current.since, now()); // known state: keep following
       else if (now() - current.since > followStartMs) { stopFollow(); report('follow-stopped', current.id); return; }
       current.timer = options.setTimer(function () { tick(current); }, pollMs);
     });
@@ -65,7 +95,7 @@ function createWatcher(options) {
       else if (name === 'resume' || name === 'ui-visible') { cancel(); stopFollow(); pausedUntil = 0; awayUntil = 0; }
       else if (name === 'opened-app') {
         cancel(); stopFollow(); awayUntil = time + awayMs;
-        if (!argument || !options.isVisible) return 'away';
+        if (!argument || !options.front) return 'away';
         startFollow(argument);
         return 'following';
       }
@@ -91,4 +121,5 @@ function readCommand(appControl) {
   return ['', ''];
 }
 
-module.exports = {createWatcher: createWatcher, decide: decide, readCommand: readCommand, ART_SIGNALS: ART_SIGNALS};
+module.exports = {createWatcher: createWatcher, decide: decide, readCommand: readCommand, frontOf: frontOf,
+  otherInFront: otherInFront, ART_SIGNALS: ART_SIGNALS};
