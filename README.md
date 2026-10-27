@@ -132,6 +132,10 @@ python -m cyt build --config .local/launcher.json --out dist/launcher-v1 --wallp
 Optional private settings in `.local/launcher.json`:
 
 - `"inputs": [{"type": "HDMI", "number": 4}]` lists the only inputs shown in the input menu. The TV supplies their names.
+- `"greetingName": "nhà An Bình"` adds a name to the time-of-day greeting.
+- `"events": [{"name": "Sinh nhật Bi", "month": 10, "day": 29}, {"name": "Giỗ ông", "month": 9, "day": 20, "lunar": true}]`
+  adds private days to the countdown line, which shows the nearest 2-3 events (Vietnamese and international days built in)
+  next to the Vietnamese lunar date.
 - `--wallpapers DIR` bundles up to 60 `jpg`/`png` files (at most 2.5 MB each, 1920x1080 recommended).
   One is shown per local day, in file-name order; Settings → Hình nền previews and saves a fixed choice.
 

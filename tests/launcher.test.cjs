@@ -344,3 +344,27 @@ test('a media app in front blocks the relaunch unless Samsung Home covers it', (
   }
   let done=0; core.tellService({},'','pause',()=>done++); assert.equal(done,1);
 });
+
+const calendar = require('../launcher/calendar.js');
+test('lunar calendar matches known Vietnamese dates', () => {
+  for (const [year, solar] of [[2024,[10,2,2024]],[2025,[29,1,2025]],[2026,[17,2,2026]],[2027,[6,2,2027]],[2033,[31,1,2033]]]) {
+    assert.deepEqual(calendar.fromLunar(1,1,year),solar,'Tết '+year);
+    assert.deepEqual(calendar.toLunar(...solar),{day:1,month:1,year,leap:false});
+  }
+  assert.deepEqual(calendar.fromLunar(15,8,2026),[25,9,2026]); // Trung thu
+  assert.deepEqual(calendar.toLunar(27,10,2026),{day:18,month:9,year:2026,leap:false});
+});
+test('countdown lists the nearest events soonest first, today included, across the year end', () => {
+  assert.deepEqual(calendar.countdowns(new Date(2026,9,27),[],3),['Halloween còn 4 ngày','Ngày Nhà giáo còn 24 ngày','Giáng sinh còn 59 ngày']);
+  assert.deepEqual(calendar.countdowns(new Date(2026,11,31),[],2),['Năm mới 2027 vào ngày mai','Ông Công Ông Táo còn 30 ngày']);
+  assert.equal(calendar.countdowns(new Date(2026,9,31),[],1)[0],'Hôm nay: Halloween');
+  const own=[{name:'Sinh nhật Bi',month:10,day:29},{name:'x'.repeat(41),month:10,day:28},{name:'bad',month:13,day:1}];
+  assert.deepEqual(calendar.countdowns(new Date(2026,9,27),own,2),['Sinh nhật Bi còn 2 ngày','Halloween còn 4 ngày']);
+  const lunarOwn=[{name:'Giỗ ông',month:9,day:20,lunar:true}];
+  assert.equal(calendar.countdowns(new Date(2026,9,27),lunarOwn,1)[0],'Giỗ ông còn 2 ngày');
+});
+test('greeting follows the time of day and the configured family name', () => {
+  assert.deepEqual(calendar.greeting(new Date(2026,9,27,7),'nhà An Bình'),{text:'Chào buổi sáng, nhà An Bình',period:'morning'});
+  assert.equal(calendar.greeting(new Date(2026,9,27,20,7)).text,'Chào buổi tối');
+  assert.equal(calendar.greeting(new Date(2026,9,27,23)).period,'night');
+});

@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var config = window.CYT_CONFIG, core = window.CytCore, tv = window.tizen;
+  var config = window.CYT_CONFIG, core = window.CytCore, calendar = window.CytCalendar, tv = window.tizen;
   var $ = function (id) { return document.getElementById(id); };
   var dock = $('dock'), panel = $('panel'), message = $('message'), home = $('home');
   var menu = $('menu'), menuItems = $('menu-items'), caption = $('caption');
@@ -36,10 +36,25 @@
   }
 
   // ---- Clock, Wi-Fi ----
+  var shownDay = null;
   function clock() {
     var now = new Date();
     $('time').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    $('date').textContent = now.toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'long'});
+    var hello = calendar.greeting(now, config.greetingName);
+    $('greeting').textContent = hello.text;
+    document.querySelector('.today').classList.toggle('night', hello.period === 'evening' || hello.period === 'night');
+    if (shownDay === now.toDateString()) return;
+    shownDay = now.toDateString();
+    var lunar = calendar.toLunar(now.getDate(), now.getMonth() + 1, now.getFullYear());
+    $('date').textContent = now.toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'long'}) +
+      '\u00a0\u00a0|\u00a0\u00a0Âm lịch: ' + lunar.day + '/' + lunar.month;
+    // Show the nearest events, dropping the farthest until the line fits.
+    var events = $('events'), line = events.parentNode, items = calendar.countdowns(now, config.events, 3);
+    for (var count = items.length; count >= 1; count -= 1) {
+      events.textContent = items.slice(0, count).join('\u00a0\u00a0\u00a0·\u00a0\u00a0\u00a0');
+      if (line.scrollWidth <= line.clientWidth) break;
+    }
+    line.hidden = !items.length;
   }
   var wifi = core.wifiInfo(null);
   function readWifi(done) {

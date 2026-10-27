@@ -6,6 +6,10 @@
 <body>
 <main id="home">
   <section class="clockblock" aria-label="Thời gian"><p id="date"></p><time id="time">00:00</time></section>
+  <section class="today" aria-label="Hôm nay">
+    <p class="greeting glass"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M12 3v2M4.9 6.4l1.4 1.4M19.1 6.4l-1.4 1.4M2 13h2M20 13h2M3 18h18"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span id="greeting"></span><svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-9.2-8.6C1.4 8.6 3 5 6.5 5c2 0 3.5 1.2 5.5 3.3C14 6.2 15.5 5 17.5 5 21 5 22.6 8.6 21.2 11.4 19 15.6 12 20 12 20z"/></svg></p>
+    <p class="events"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h1M11.5 14h1M15.5 14h1M7.5 17.5h1M11.5 17.5h1"/></svg><span id="events"></span></p>
+  </section>
   <nav class="pill glass" aria-label="Điều khiển nhanh">
     <button id="btn-input" data-menu="input" aria-label="Nguồn vào" aria-haspopup="true">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg></button>
@@ -25,5 +29,5 @@
 </main>
 <section id="panel" class="panel" hidden aria-label="Sắp xếp ứng dụng"><div class="panel-header"><div><p class="eyebrow">SẮP XẾP</p><h2>Đưa ứng dụng bạn thích lên trước.</h2></div><button id="close-panel">Xong</button></div><p class="panel-note">Chọn ứng dụng để đưa lên đầu hàng. Thứ tự được lưu trên TV này.</p><div id="arrange" class="arrange"></div></section>
 <div id="message" role="status" aria-live="polite" hidden></div>
-<script src="config.js"></script><script src="core.js"></script><script src="app.js"></script>
+<script src="config.js"></script><script src="core.js"></script><script src="calendar.js"></script><script src="app.js"></script>
 </body></html>
