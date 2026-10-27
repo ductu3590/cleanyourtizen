@@ -38,10 +38,14 @@ test('invalid IDs never reach the API', () => {
   let message; core.launch({application:{launch(){assert.fail();}}},'bad;cmd',()=>assert.fail(),m=>message=m);
   assert.ok(message);
 });
-test('launcher does not intercept power/home or run a background watchdog', () => {
+test('launcher and service never intercept Power/Home keys', () => {
+  for (const file of ['launcher/app.js','launcher/service/service.js','launcher/service/watch.js']) {
+    const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+    assert.ok(!source.includes('registerKey('), file);
+    assert.ok(!source.includes('10252'), file); // Power key must remain Samsung-owned.
+    if (file.includes('service')) assert.ok(!source.includes('setInterval('), file); // event-driven, no polling watchdog
+  }
   const app=fs.readFileSync(path.join(__dirname,'../launcher/app.js'),'utf8');
-  assert.ok(!app.includes('registerKey('));
-  assert.ok(!app.includes('10252')); // Power key must remain Samsung-owned.
   assert.ok(!app.includes('setInterval(openApp'));
   assert.ok(!app.includes('innerHTML'));
 });
@@ -205,4 +209,114 @@ test('screenshots are attributed as illustration-only wallpaper and the repo shi
   assert.match(fs.readFileSync(path.join(root, 'README.vi.md'), 'utf8'), /chỉ dùng để minh hoạ/);
   assert.ok(!fs.existsSync(path.join(root, 'launcher', 'wallpapers')));
   for (const name of ['home', 'input', 'settings']) assert.ok(fs.statSync(path.join(root, 'docs/images/launcher-' + name + '.png')).size < 1_500_000);
+});
+
+const watch = require('../launcher/service/watch.js');
+const HOME={powerState:'on',launcherVisible:false,contexts:['com.samsung.tv.csfs']};
+function guard(extra, tv) {
+  const state={time:1000,launched:[],timers:[],tv:tv||HOME};
+  const watcher=watch.createWatcher(Object.assign({mode:'guard',launcherId:'CyTizen001.Home',delayMs:2500,
+    pauseMs:60000,awayMs:15000,cooldownMs:4000,now:()=>state.time,launch:id=>state.launched.push(id),
+    inspect:done=>done(state.tv),
+    setTimer:(fn,ms)=>{state.timers.push(fn);return state.timers.length;},clearTimer:id=>{state.timers[id-1]=null;}},extra));
+  // Fire the pending delayed check, as the real timer would.
+  state.fire=()=>{const pending=state.timers.filter(Boolean);state.timers=[];pending.forEach(fn=>fn());};
+  return {state,watcher};
+}
+test('Samsung Home covering the launcher brings it back after the delay', () => {
+  const {state,watcher}=guard();
+  assert.equal(watcher.command('ui-hidden'),'scheduled');
+  assert.deepEqual(state.launched,[]); state.fire();
+  assert.deepEqual(state.launched,['CyTizen001.Home']);
+});
+test('Art Mode, standby or an already visible launcher are left alone', () => {
+  for (const tv of [{powerState:'on',launcherVisible:false,contexts:watch.ART_SIGNALS},
+    {powerState:'standby',launcherVisible:false,contexts:[]},{powerState:'on',launcherVisible:true,contexts:[]},
+    {powerState:'on',launcherVisible:false,contexts:[],otherVisible:'9Ur5IzDKqV.TizenYouTube'}]) {
+    const {state,watcher}=guard({},tv); watcher.command('ui-hidden'); state.fire();
+    assert.deepEqual(state.launched,[],JSON.stringify(tv));
+  }
+});
+test('unknown TV state does not block the launcher', () => {
+  assert.equal(watch.decide({powerState:null,launcherVisible:false,contexts:[]}),'launch');
+});
+test('observe mode never launches anything', () => {
+  const {state,watcher}=guard({mode:'observe'}); watcher.command('ui-hidden'); state.fire();
+  assert.deepEqual(state.launched,[]);
+});
+test('apps opened from the launcher are not interrupted', () => {
+  const {state,watcher}=guard();
+  watcher.command('opened-app'); state.time+=500;
+  assert.equal(watcher.command('ui-hidden'),'away'); state.fire();
+  assert.deepEqual(state.launched,[]);
+  state.time+=15000; watcher.command('ui-visible'); assert.equal(watcher.command('ui-hidden'),'scheduled');
+});
+test('returning to the launcher before the delay cancels the check', () => {
+  const {state,watcher}=guard();
+  watcher.command('ui-hidden'); watcher.command('ui-visible'); state.fire();
+  assert.deepEqual(state.launched,[]);
+});
+test('cooldown stops a relaunch loop', () => {
+  const {state,watcher}=guard();
+  watcher.command('ui-hidden'); state.fire(); state.time+=1000;
+  watcher.command('ui-hidden'); state.fire();
+  assert.equal(state.launched.length,1);
+  state.time+=4000; watcher.command('ui-hidden'); state.fire();
+  assert.equal(state.launched.length,2);
+});
+test('choosing Samsung Home pauses the guard until it expires or the launcher is visible again', () => {
+  const {state,watcher}=guard();
+  watcher.command('pause'); state.time+=59000;
+  assert.equal(watcher.command('ui-hidden'),'paused');
+  state.time+=2000; watcher.command('ui-hidden'); state.fire();
+  assert.equal(state.launched.length,1);
+  state.time+=5000; watcher.command('pause'); watcher.command('ui-visible');
+  assert.equal(watcher.command('ui-hidden'),'scheduled');
+});
+test('service commands are read from app control data only', () => {
+  assert.deepEqual(watch.readCommand({data:[{key:'other',value:['x']},{key:'cmd',value:['pause']}]}),['pause','']);
+  assert.deepEqual(watch.readCommand({data:[{key:'cmd',value:['opened-app','ZTpEFWgfa9.FPTPlay']}]}),['opened-app','ZTpEFWgfa9.FPTPlay']);
+  assert.deepEqual(watch.readCommand(null),['','']);
+  assert.deepEqual(watch.readCommand({data:[{key:'cmd',value:[]}]}),['','']);
+});
+function following(visibility, tv) {
+  const g=guard({isVisible:(id,done)=>done(visibility.shift())},tv);
+  assert.equal(g.watcher.command('opened-app','ZTpEFWgfa9.FPTPlay'),'following');
+  g.watcher.command('ui-hidden');
+  return g;
+}
+test('Home pressed inside a followed app returns to the launcher', () => {
+  const {state}=following([false,true,true,false]);
+  state.fire(); state.fire(); state.fire(); assert.deepEqual(state.launched,[]);
+  state.fire(); // app no longer visible -> delayed check scheduled
+  state.fire(); assert.deepEqual(state.launched,['CyTizen001.Home']);
+});
+test('an app that never reports visibility is not followed forever', () => {
+  const g=following([false,false]); g.state.fire(); g.state.time+=31000; g.state.fire();
+  assert.deepEqual(g.state.timers.filter(Boolean),[]); assert.deepEqual(g.state.launched,[]);
+});
+test('Art Mode during a followed app keeps following without launching', () => {
+  const vis=[true,false,false,true,false];
+  const g=following(vis,{powerState:'on',launcherVisible:false,contexts:watch.ART_SIGNALS});
+  g.state.fire(); g.state.fire(); g.state.fire(); // seen, left, check -> art-mode
+  assert.deepEqual(g.state.launched,[]);
+  g.state.time+=3600000; g.state.fire(); // still waiting after an hour of Art Mode
+  g.state.tv=HOME; g.state.fire(); g.state.fire(); g.state.fire();
+  assert.deepEqual(g.state.launched,['CyTizen001.Home']);
+});
+test('returning to the launcher stops following', () => {
+  const g=following([true]); g.watcher.command('ui-visible');
+  assert.deepEqual(g.state.timers.filter(Boolean),[]);
+});
+test('telling the service always continues, even when it fails or never answers', () => {
+  function Control(op,uri,mime,cat,data){this.data=data;}
+  function Data(key,value){this.key=key;this.value=value;}
+  let sent; let calls=0;
+  core.tellService({ApplicationControl:Control,ApplicationControlData:Data,application:{launchAppControl(c,id,ok){sent=[id,c.data[0].value[0]];ok();ok();}}},
+    'CyTizen001.Service','pause',()=>calls++);
+  assert.deepEqual(sent,['CyTizen001.Service','pause']); assert.equal(calls,1);
+  for (const api of [null,{application:{}},{ApplicationControl:Control,ApplicationControlData:Data,application:{launchAppControl(){throw new Error('no service');}}}]) {
+    let done=0; core.tellService(api,'CyTizen001.Service','pause',()=>done++); assert.equal(done,1);
+  }
+  let done=0; core.tellService({},'','pause',()=>done++); assert.equal(done,1);
 });

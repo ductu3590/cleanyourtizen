@@ -9,12 +9,20 @@
     "debloat": "partial 2026-10-26: Hot IPTV removed and verified; VieON, VTV Giai Tri, TV360, VTVcab ON and Galaxy Play are preinstalled and refuse removal with \"can not uninstall app\" (no inventory change)",
     "launcherInstall": "verified 2026-10-26: signed with own Samsung author/distributor certificates, installed with tizen install",
     "physicalRemote": "partial 2026-10-26: D-pad, OK and Back verified in launcher; Home and Power are not in tvinputdevice.getSupportedKeys",
-    "artMode": "not-tested",
+    "artMode": "verified 2026-10-27: guard skips Art Mode (wifi-motion-service-app signal)",
+    "homeReturn": "verified 2026-10-27: Home over the launcher returns to it; Settings/Source overlays do not hide the launcher",
     "nativeHome": "unsupported",
     "inputSwitch": "verified 2026-10-26: tvwindow.setSource with VIDEOSOURCE instances and a transparent page shows HDMI 4",
     "settingsApps": "verified 2026-10-26: launching Samsung Settings, Network and Home Setting apps from a web app fails with UnknownError",
     "homeKeyAndHotkeys": "not-registrable 2026-10-26: Home, Power and the Disney+/VieON hotkeys are absent from supported keys",
     "vdAppUninstall": "tried 2026-10-26 on TV360 with both the numeric app id and the tizen id: \"can not uninstall app\", no inventory change; same refusal as sdb uninstall"
+  },
+  "serviceFindings": {
+    "node": "v12.16.3",
+    "addAppStatusChangeListener": "registers but never fires (all apps or a single ID)",
+    "restVisibility": "127.0.0.1:8001/api/v2/applications/<id> reports store apps only; YouTube (cobalt), FPT Play and Stremio always visible:false, Nuvio TV reports correctly",
+    "artSignalDelay": "wifi-motion-service-app appears ~220-370 ms after the launcher is hidden; delayMs must stay >= 300",
+    "knownGaps": ["YouTube cast while the launcher is in front is pulled back", "Home pressed inside an app that never reports visible opens Samsung Home", "cold boot needs Autorun Last App; on-boot is not available"]
   },
   "artModeRequired": true,
   "notes": "Inventory read on one Vietnamese The Frame. No claim for another model, region or firmware. This profile enables no privileged operations."

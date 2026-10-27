@@ -24,5 +24,15 @@ Use exact model/firmware and a private session directory. These checks are separ
 - [ ] Native Art Mode image/brightness behavior remains normal. UI preview cannot prove this.
 - [ ] Standby and unplugged boot are tested separately before claiming automatic startup.
 
-No Home/startup takeover is part of this release. If installation or physical tests have not run,
+## Guard service (`service.mode: guard`)
+
+- [ ] Applist shows `<package>.Service` next to the launcher.
+- [ ] Home pressed over the launcher reopens it within ~1 s.
+- [ ] Power into Art Mode is not interrupted; Settings and Source menus stay open.
+- [ ] An app opened from the launcher is not interrupted.
+- [ ] **Samsung Home ↗** and Back from the home screen stay on Samsung Home for the pause period.
+- [ ] Input shown inside the launcher (HDMI) is not interrupted.
+- [ ] Diagnostic builds (`reportUrl`) are replaced by a build without it.
+
+No native Home/startup takeover is part of this release. If installation or physical tests have not run,
 leave those profile fields `not-tested`, even when the desktop preview and build are successful.

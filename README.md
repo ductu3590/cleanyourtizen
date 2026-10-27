@@ -48,7 +48,8 @@ Not affiliated with Samsung or Apple. App names are their owners' trademarks; ti
 | Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, Samsung Home escape |
 | Signed launcher installation | Requires your own Samsung certificates and signed WGT |
 | Replace physical Home / Power / brand hotkeys | **Not possible for a normal app.** They are absent from the TV's supported keys; see [the device profile](profiles/qa55ls03b.json) |
-| Keep Art Mode | No Power/Home interception, no background auto-return; physical validation still required |
+| Return to launcher when Home covers it | Opt-in background web service (`service.mode: guard`); see below |
+| Keep Art Mode | No Power/Home key interception; guard skips Art Mode and standby; verified on QA55LS03B only |
 | Every Samsung TV | **Not claimed.** Tizen only, capability-driven, exact-device evidence |
 
 Current device evidence is in [profiles/qa55ls03b.json](profiles/qa55ls03b.json).
@@ -151,9 +152,31 @@ launcher with its own package ID, and remove it afterwards.
 Use a unique, stable 10-character alphanumeric package ID (`launcher-config --package`) and keep
 the same author certificate for updates. Default `CyTizen001` is a development identity, not a
 Samsung-approved production identity. Distribution to other owners requires their signing workflow.
-The launcher is opened as a normal app. Physical Home continues to open Samsung Home.
+The launcher is opened as a normal app. Physical Home continues to open Samsung Home
+(the opt-in guard service then reopens the launcher; see below).
 Return/Escape opens the verified stock Home app, or exits the launcher when its identity is unknown.
-No API calls target Art Mode, Home routing, system power or startup settings.
+No API calls change Art Mode, Home routing, system power or startup settings; the service only reads them.
+
+## Background service (return to launcher)
+
+Every build packages `<package>.Service` (a Tizen web service, Node.js on the TV). Add to the private
+launcher JSON:
+
+```json
+"service": {"mode": "guard", "delayMs": 500}
+```
+
+The default `observe` mode never launches anything. In `guard` mode the launcher page tells the service
+when it is hidden; after `delayMs` (default 2.5 s, minimum 0.3 s) the service reads the TV's own REST API
+on `127.0.0.1:8001` and running app contexts, then reopens the launcher unless the TV is not `on`,
+Art Mode is running, the launcher is visible again, or a store app reports `visible`. Apps opened from
+the launcher are not interrupted; **Samsung Home ↗** and Back pause the service for `pauseMs` (10 min).
+A cooldown blocks loops. `reportUrl` (private LAN HTTP only) sends diagnostic events to a computer;
+leave it out for normal use.
+
+Known limits on QA55LS03B / Tizen 6.5: `addAppStatusChangeListener` never fires; Home pressed inside an
+app opens Samsung Home unless that app reports `visible` (Nuvio TV does; FPT Play, Stremio, YouTube do not);
+YouTube cast while the launcher is in front is pulled back; `on-boot` services are unavailable on consumer TVs.
 
 ## Test and contribute
 

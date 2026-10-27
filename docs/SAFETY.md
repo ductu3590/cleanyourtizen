@@ -16,6 +16,8 @@
    establish compatibility with a Frame. Restoring native Home would require the TV's exact original
    typed settings and a tested native restoration path, neither of which this release pretends to have.
 9. Never delete the launcher while it owns native Home. This release does not assign it that role.
+   The guard service does not change Home settings: uninstalling the launcher package removes it
+   and Samsung Home works as before. To disable it without uninstalling, rebuild with `mode: observe`.
 10. When work is complete, disable Developer Mode from the TV menus if you no longer need it.
     Keep the ports on the trusted LAN; do not expose developer services via router forwarding.
 

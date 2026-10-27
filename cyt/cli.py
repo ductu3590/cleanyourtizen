@@ -81,21 +81,51 @@ def apply_plan(device, snap, plan, catalog, journal_path, confirmation, allow_da
     return journal
 
 
+SERVICE_MODES = ('observe', 'guard')
+
+
+def service_settings(config):
+    """Background service options. 'observe' only reports; 'guard' relaunches when Samsung Home covers the launcher."""
+    import re
+    service = config.get('service') or {}
+    mode = service.get('mode', 'observe')
+    if mode not in SERVICE_MODES:
+        raise Refused('Service mode must be observe or guard')
+    report = service.get('reportUrl')
+    if report is not None and not re.fullmatch(r'http://(10|172|192)\.[0-9.]+:[0-9]{2,5}/[A-Za-z0-9/_-]*', report):
+        raise Refused('Diagnostic report URL must be plain HTTP on a private LAN address')
+    timing = {key: int(service.get(key, default)) for key, default in
+              (('delayMs', 2500), ('pauseMs', 600000), ('cooldownMs', 4000))}
+    # Below ~300 ms the Art Mode signal may not exist yet; see profiles/qa55ls03b.json.
+    if not 300 <= timing['delayMs'] <= 30000 or timing['cooldownMs'] < 2000:
+        raise Refused('Service timing would allow a relaunch loop')
+    return dict(timing, mode=mode, launcherId=config['appId'], reportUrl=report)
+
+
 def widget_manifest(config):
     import html
     name = html.escape(config['name'])
+    service_settings(config)  # validate before emitting a manifest
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
- id="https://cleanyourtizen.invalid/launcher" version="0.1.0" viewmodes="maximized">
+ id="https://cleanyourtizen.invalid/launcher" version="{config.get('version', '0.1.0')}" viewmodes="maximized">
  <tizen:application id="{config['appId']}" package="{config['package']}" required_version="6.5"/>
  <tizen:profile name="tv-samsung"/>
  <name>{name}</name><icon src="icon.png"/><content src="index.html"/>
  <feature name="http://tizen.org/feature/screen.size.all"/>
+ <feature name="http://tizen.org/feature/web.service"/>
  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+ <!-- internet: the service reads the TV's own REST API on 127.0.0.1:8001 (power state, visibility). -->
+ <tizen:privilege name="http://tizen.org/privilege/internet"/>
  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
  <tizen:privilege name="http://tizen.org/privilege/network.get"/>
  <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
  <tizen:privilege name="http://tizen.org/privilege/tv.audiocontrol"/>
+ <tizen:service id="{config['package']}.Service">
+  <tizen:content src="service/service.js"/>
+  <tizen:name>{name}Service</tizen:name>
+  <tizen:description>Returns to the launcher when Samsung Home opens</tizen:description>
+ </tizen:service>
  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable"/>
 </widget>'''
 
@@ -134,6 +164,7 @@ def build(config, destination, wallpapers=None):
     if destination == ROOT or ROOT in destination.parents and destination.parts[len(ROOT.parts)] not in ('.local', 'dist', 'output'):
         raise Refused('Build into dist/, .local/, output/, or a directory outside the source tree')
     files = collect_wallpapers(wallpapers) if wallpapers else []
+    settings = service_settings(config)
     config = dict(config)
     config.pop('wallpapers', None)
     if files:
@@ -146,8 +177,14 @@ def build(config, destination, wallpapers=None):
         (destination / 'wallpapers').mkdir()
         for item in files:
             shutil.copyfile(item, destination / 'wallpapers' / item.name)
+    (destination / 'service').mkdir()
+    for name in ('service.js', 'watch.js'):
+        shutil.copyfile(ROOT / 'launcher' / 'service' / name, destination / 'service' / name)
+    (destination / 'service' / 'config.json').write_text(json.dumps(settings, indent=2) + '\n', encoding='utf-8')
     (destination / 'config.xml').write_text(widget_manifest(config), encoding='utf-8')
-    (destination / 'config.js').write_text('window.CYT_CONFIG = ' + json.dumps(config, ensure_ascii=True) + ';\n', encoding='utf-8')
+    page = {key: value for key, value in config.items() if key != 'service'}
+    page['serviceId'] = config['package'] + '.Service'
+    (destination / 'config.js').write_text('window.CYT_CONFIG = ' + json.dumps(page, ensure_ascii=True) + ';\n', encoding='utf-8')
     # Unsigned reproducible bundle for inspection, NOT something we pretend can be installed.
     widget = destination.parent / (destination.name + '-unsigned.wgt')
     if widget.exists():
@@ -283,8 +320,9 @@ def main(argv=None):
                 raise Refused('Launcher is not installed')
             print(device.launch(config['appId']))
     elif args.command == 'home-status':
-        print('UNSUPPORTED: no native Home/startup writer is shipped in v0.1.\n'
+        print('UNSUPPORTED: no native Home/startup writer is shipped.\n'
               'Standalone launcher leaves Samsung Home and physical Power/Art Mode handling intact.\n'
+              'Optional guard service (service.mode=guard) reopens the launcher when Samsung Home covers it; it changes no settings.\n'
               'Art Mode preservation after Home takeover requires a separately reviewed exact-firmware adapter and physical testing.\n'
               'No model is currently certified for native Home takeover by this repository.')
 

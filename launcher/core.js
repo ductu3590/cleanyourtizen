@@ -73,6 +73,18 @@
     var day = Math.floor(Date.UTC(when.getFullYear(), when.getMonth(), when.getDate()) / 86400000);
     return 'wallpapers/' + list[((day % list.length) + list.length) % list.length];
   }
+  // Starts the background service if needed and passes it a command; always calls done exactly once.
+  function tellService(api, serviceId, command, done, argument) {
+    var called = false;
+    function finish() { if (!called) { called = true; done(); } }
+    if (!serviceId || !api || !api.application || !api.ApplicationControl) { finish(); return; }
+    try {
+      var control = new api.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null,
+        [new api.ApplicationControlData('cmd', argument ? [command, argument] : [command])]);
+      api.application.launchAppControl(control, serviceId, finish, finish);
+      setTimeout(finish, 1500); // a silent service must never trap the user in the launcher
+    } catch (error) { finish(); }
+  }
   return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
-    wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume};
+    wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume, tellService: tellService};
 }));

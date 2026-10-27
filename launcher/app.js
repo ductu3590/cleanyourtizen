@@ -18,6 +18,8 @@
     clearTimeout(timer); timer = setTimeout(function () { message.hidden = true; }, 6000);
   }
   function openApp(id) { core.launch(tv, id, function () {}, announce); }
+  // Tell the background service the launcher is leaving on purpose before it gets hidden.
+  function openShortcut(id) { core.tellService(tv, config.serviceId, 'opened-app', function () { openApp(id); }, id); }
   function hideVideo(done) {
     var finish = function () { if (done) done(); };
     if (!videoOn || !tv || !tv.tvwindow) { videoOn = false; finish(); return; }
@@ -26,7 +28,8 @@
   }
   function returnHome() {
     hideVideo(function () {
-      if (config.samsungHome) { openApp(config.samsungHome); return; }
+      // Pause the background service first so it does not pull the launcher straight back.
+      if (config.samsungHome) { core.tellService(tv, config.serviceId, 'pause', function () { openApp(config.samsungHome); }); return; }
       try { tv.application.getCurrentApplication().exit(); }
       catch (error) { announce('Bản xem trước · Thoát launcher'); }
     });
@@ -178,7 +181,7 @@
       var symbol = document.createElement('span'); symbol.className = 'symbol'; symbol.textContent = identity[1];
       var label = document.createElement('span'); label.className = 'tile-label'; label.textContent = identity[2];
       button.appendChild(symbol); button.appendChild(label);
-      button.addEventListener('click', function () { openApp(app.id); });
+      button.addEventListener('click', function () { openShortcut(app.id); });
       dock.appendChild(button);
     });
     if (!apps.length) announce('Chưa có ứng dụng được chọn. Nút Cài đặt → Samsung Home luôn sẵn sàng.');
@@ -260,6 +263,7 @@
   });
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {
+    core.tellService(tv, config.serviceId, document.hidden ? 'ui-hidden' : 'ui-visible', function () {});
     if (document.hidden) { clearInterval(clockTimer); clockTimer = null; }
     else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
   });
@@ -312,5 +316,6 @@
   function tick() { clock(); readWifi(); wallpaper(); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
+  core.tellService(tv, config.serviceId, 'resume', function () {});
   render(); (dock.firstChild || $('btn-settings')).focus();
 }());

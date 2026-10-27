@@ -163,7 +163,8 @@ class PlanTests(unittest.TestCase):
         config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
         xml = ET.fromstring(widget_manifest(config))
         names = sorted(item.get('name').rsplit('/', 1)[1] for item in xml.findall('{http://tizen.org/ns/widgets}privilege'))
-        self.assertEqual(names, ['application.launch', 'network.get', 'tv.audiocontrol', 'tv.inputdevice', 'tv.window'])
+        # internet: the guard service reads the TV's own REST API on 127.0.0.1:8001.
+        self.assertEqual(names, ['application.launch', 'internet', 'network.get', 'tv.audiocontrol', 'tv.inputdevice', 'tv.window'])
 
     def test_unknown_stock_home_uses_exit_instead_of_guessed_id(self):
         value = snap()
@@ -299,6 +300,34 @@ class BuildTests(unittest.TestCase):
         with self.assertRaises(core.Refused) as raised:
             install_and_verify(Fake(False), 'x.wgt', config)
         self.assertIn('tizen install', str(raised.exception))
+
+    def test_build_packages_background_service(self):
+        config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        with tempfile.TemporaryDirectory() as directory:
+            widget = build(config, Path(directory) / 'stage')
+            with zipfile.ZipFile(widget) as archive:
+                names = archive.namelist()
+                for name in ('service/service.js', 'service/watch.js', 'service/config.json'):
+                    self.assertIn(name, names)
+                settings = json.loads(archive.read('service/config.json'))
+                manifest = archive.read('config.xml').decode()
+                page = archive.read('config.js').decode()
+        # Default build only observes; relaunching over Samsung Home is an explicit opt-in.
+        self.assertEqual(settings['mode'], 'observe')
+        self.assertEqual(settings['launcherId'], 'CyTizen001.Home')
+        self.assertIn('<tizen:service id="CyTizen001.Service">', manifest)
+        self.assertIn('"serviceId": "CyTizen001.Service"', page)
+        self.assertIsNone(settings['reportUrl'])
+
+    def test_service_settings_refuse_unsafe_values(self):
+        from cyt.cli import service_settings
+        base = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        for service in ({'mode': 'takeover'}, {'delayMs': 100}, {'delayMs': 60000}, {'cooldownMs': 0},
+                        {'reportUrl': 'http://example.com:80/log'}, {'reportUrl': 'https://192.168.1.2:80/'}):
+            with self.assertRaises(core.Refused):
+                service_settings(dict(base, service=service))
+        guard = service_settings(dict(base, service={'mode': 'guard', 'reportUrl': 'http://192.168.1.71:8765/log'}))
+        self.assertEqual((guard['mode'], guard['delayMs']), ('guard', 2500))
 
     def test_source_tree_cannot_be_a_build_destination(self):
         with self.assertRaises(core.Refused):
