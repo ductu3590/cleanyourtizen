@@ -27,6 +27,7 @@
 ## Bắt đầu
 
 - **[Hướng dẫn từng bước (Tiếng Việt)](docs/HUONG-DAN.md)** · [Step-by-step guide (English)](docs/GETTING-STARTED.md)
+- **[Cài lên TV khác, với ứng dụng của bạn](docs/TV-KHAC.md)** · [Another TV, your own apps](docs/OTHER-TVS.md)
 - [Ký ứng dụng và chứng chỉ](docs/SIGNING.md) · [Phạm vi an toàn](docs/SAFETY.md) · [Danh sách nghiệm thu trên TV](docs/ACCEPTANCE.md)
 
 ## Đã kiểm chứng trên TV thật

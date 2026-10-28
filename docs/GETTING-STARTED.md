@@ -72,6 +72,8 @@ with `can not uninstall app`. See "Apply only after review" in the [README](../R
 python -m cyt launcher-config --snapshot .local/before.json --apps ZTpEFWgfa9.FPTPlay 9Ur5IzDKqV.TizenYouTube org.tizen.netflix-app --out .local/launcher.json
 ```
 
+Finding App IDs, choosing your own package ID and how other apps look: see [Another TV, your own apps](OTHER-TVS.md).
+
 Optionally add the inputs shown in the input menu to `.local/launcher.json`; the TV supplies the device names:
 
 ```json

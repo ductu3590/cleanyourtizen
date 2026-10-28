@@ -28,6 +28,7 @@ Art Mode stay untouched.
 ## Start here
 
 - **[Step-by-step guide (English)](docs/GETTING-STARTED.md)** · **[Hướng dẫn từng bước (Tiếng Việt)](docs/HUONG-DAN.md)**
+- **[Another TV, your own apps](docs/OTHER-TVS.md)** · [TV khác, ứng dụng của bạn](docs/TV-KHAC.md)
 - [Signing and certificates](docs/SIGNING.md) · [Safety scope](docs/SAFETY.md) · [Device acceptance checklist](docs/ACCEPTANCE.md)
 
 Inspired by the inspect → review → apply → verify workflow of

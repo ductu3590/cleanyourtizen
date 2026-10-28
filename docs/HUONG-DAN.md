@@ -89,7 +89,7 @@ Bạn có thể bỏ qua bước này. Nếu làm, hãy đọc [SAFETY](SAFETY.m
 python -m cyt launcher-config --snapshot .local/before.json --apps ZTpEFWgfa9.FPTPlay 9Ur5IzDKqV.TizenYouTube org.tizen.netflix-app --out .local/launcher.json
 ```
 
-Danh sách `--apps` là các App ID bạn chọn, theo thứ tự hiển thị. Sau đó mở `.local/launcher.json` và thêm dòng nguồn vào (không bắt buộc):
+Danh sách `--apps` là các App ID bạn chọn, theo thứ tự hiển thị. Cách tìm App ID, đặt mã gói riêng và ô cho ứng dụng khác: xem [Cài lên TV khác](TV-KHAC.md). Sau đó mở `.local/launcher.json` và thêm dòng nguồn vào (không bắt buộc):
 
 ```json
 "inputs": [{"type": "HDMI", "number": 4}]
