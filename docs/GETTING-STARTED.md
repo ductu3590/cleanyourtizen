@@ -96,28 +96,64 @@ tizen install -n CleanYourTizen.wgt -s 192.168.1.50:26101 -- .local/signed
 wait for `Tizen application is successfully installed.` Then open it from Apps or run
 `python -m cyt launch --snapshot .local/before.json --config .local/launcher.json --sdb "C:/tizen-studio/tools/sdb.exe"`.
 
-## 10. Pin it to the front of Home
+## 10. Optional: greeting, lunar date and family days
+
+The home screen always shows a time-of-day greeting, the Vietnamese lunar date and a countdown to the nearest 2-3 holidays.
+Optionally add to `.local/launcher.json`:
+
+```json
+"greetingName": "nhà An Bình",
+"events": [
+  {"name": "Sinh nhật Bi", "month": 10, "day": 29},
+  {"name": "Giỗ ông", "month": 9, "day": 20, "lunar": true}
+]
+```
+
+`greetingName` is appended to the greeting. `"lunar": true` marks a lunar date, converted every year. The countdown stays on
+one line; the farthest event is dropped when it does not fit.
+
+## 11. Optional: background service (return to launcher)
+
+Every build includes a small service (`<package>.Service`). By default it only observes. To bring the launcher back after
+Home, add this to `.local/launcher.json`, then build, sign and install again (step 9):
+
+```json
+"service": {"mode": "guard", "delayMs": 500}
+```
+
+- Home on the launcher: Samsung Home appears, the launcher reopens about half a second later.
+- Home inside an app opened from the launcher (FPT Play, Stremio, Nuvio, YouTube, Netflix...): the launcher returns too.
+- Apps you are watching are never interrupted, also after a long time; YouTube cast from a phone is left alone.
+- Art Mode, standby and Samsung's Settings/Source menus are never interrupted.
+- **Samsung Home ↗** in Settings, or Back on the home screen, pauses the service for 10 minutes.
+
+The service only reads TV state (the local `127.0.0.1:8001` API and the `cpu/running` CPU cgroup) and launches the launcher.
+It does not intercept Home or Power and changes no Home or startup setting. Removing the launcher removes the service.
+To turn it off, set `"mode": "observe"` or delete the `service` line and reinstall. `reportUrl` is for debugging only.
+
+## 12. Pin it to the front of Home
 
 Home → Apps → the gear icon → choose **CleanYourTizen** → **Move** (or **Add to Home**) → place it first. Menu names vary by firmware.
-Optionally enable your TV's "resume last app on power on" setting; on The Frame check that it does not disturb Art Mode.
+Enable your TV's "resume last app on power on" setting (*Autorun Last App*), since the service cannot start at boot; on The Frame check that it does not disturb Art Mode.
 
-## 11. Using it
+## 13. Using it
 
 ![Home](images/launcher-home.png)
 
 - **Top-right pill:** input switching (OK switches, Back returns), Wi-Fi name and signal, settings (volume, mute, wallpaper, arrange apps, Samsung Home).
-- **App row:** OK opens an app. **Back** with no menu open goes to Samsung Home.
+- **App row:** OK opens an app. **Back** with no menu open goes to Samsung Home (and pauses the service for 10 minutes).
+- **Top centre:** greeting, lunar date and holiday countdown.
 
 ![Input menu](images/launcher-input.png)
 ![Settings menu](images/launcher-settings.png)
 
-## 12. Update and remove
+## 14. Update and remove
 
 - **Update:** rebuild, sign with the **same author certificate**, run `tizen install` again.
 - **Remove:** `tizen uninstall -p CyTizen001.Home -s 192.168.1.50:26101`. Samsung Home is untouched.
 - Turn Developer Mode off when you no longer need it.
 
-## 13. Troubleshooting
+## 15. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -129,10 +165,12 @@ Optionally enable your TV's "resume last app on power on" setting; on The Frame 
 | `can not uninstall app` | Preinstalled system app | Cannot be removed in Developer Mode |
 | Samsung Settings does not open | Platform blocks third-party launching of system apps (`UnknownError`) | Known limit |
 | Wallpaper did not change | TV clock or timezone wrong, or no key pressed yet | Press any key; the date is rechecked |
+| Home does not return to the launcher | Guard mode off, inside the 10-minute pause, or launcher not opened since power-on | Check the config, open the launcher once, wait for the pause |
 | Old icon after updating | Samsung Home caches icons | Power-cycle the TV |
 
 ## Limits
 
+- The service reopens the launcher only **after** Samsung Home appears (about half a second); it does not replace the Home key.
 - No takeover of the Home key, Power key or brand hotkeys: they are not in the TV's supported-key list.
 - No access to picture or sleep-timer settings, and Samsung's own settings apps cannot be opened from a normal app.
 - Some preinstalled apps cannot be removed.

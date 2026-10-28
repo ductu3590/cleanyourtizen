@@ -16,10 +16,12 @@ Art Mode stay untouched.
 
 ## Highlights
 
-- Big clock and date, a quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
+- Big clock and date, a time-of-day greeting, the Vietnamese lunar date and a one-line countdown to the next 2-3 holidays or family days.
+- A quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
 - **Input switching** with the device names your TV reports (for example a game console on HDMI 4).
 - **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
 - **Daily wallpaper** from your own images, with a quick picker that previews each one live.
+- Optional background service that brings the launcher back when Home is pressed, while leaving Art Mode, standby and running apps alone.
 - Everything is local HTML/CSS/JS. No network calls, no accounts, no analytics.
 - Safe cleanup tooling: inspect, plan, apply with a plan hash and data-loss acknowledgement, and verify.
 
@@ -45,7 +47,7 @@ Not affiliated with Samsung or Apple. App names are their owners' trademarks; ti
 | Preview selected app removal | Offline plan; no default deletion set |
 | Uninstall reviewed user-facing packages | Explicit plan hash, data-loss acknowledgement, per-package verification |
 | Restore removed app data | **Not possible from an inventory.** Manual store reinstall only |
-| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, Samsung Home escape |
+| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, greeting, lunar date and countdown, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, Samsung Home escape |
 | Signed launcher installation | Requires your own Samsung certificates and signed WGT |
 | Replace physical Home / Power / brand hotkeys | **Not possible for a normal app.** They are absent from the TV's supported keys; see [the device profile](profiles/qa55ls03b.json) |
 | Return to launcher when Home covers it | Opt-in background web service (`service.mode: guard`); see below |

@@ -126,7 +126,47 @@ python -m cyt launch --snapshot .local/before.json --config .local/launcher.json
 
 Hoặc tìm **CleanYourTizen** trong danh sách Apps của TV.
 
-## 10. Ghim lên đầu Home
+## 10. (Không bắt buộc) Lời chào, âm lịch và ngày riêng
+
+Launcher luôn hiện lời chào theo buổi, ngày âm lịch và đếm ngược tới 2-3 ngày lễ gần nhất (Tết, Trung thu, 20/10, Giáng sinh...).
+Thêm vào `.local/launcher.json` nếu muốn:
+
+```json
+"greetingName": "nhà An Bình",
+"events": [
+  {"name": "Sinh nhật Bi", "month": 10, "day": 29},
+  {"name": "Giỗ ông", "month": 9, "day": 20, "lunar": true}
+]
+```
+
+- `greetingName` được ghép vào lời chào, ví dụ "Chào buổi tối, nhà An Bình".
+- `events` là ngày riêng; `"lunar": true` nghĩa là ngày âm lịch, launcher tự đổi ra dương lịch mỗi năm.
+- Dòng đếm ngược luôn nằm trên một dòng; nếu dài quá, sự kiện xa nhất được bỏ bớt.
+
+## 11. (Không bắt buộc) Service nền: tự quay lại launcher
+
+Mỗi bản build có kèm một service nền nhỏ (`<package>.Service`). Mặc định nó chỉ quan sát, không làm gì.
+Muốn launcher tự quay lại khi bấm Home, thêm vào `.local/launcher.json` rồi build, ký, cài lại như bước 9:
+
+```json
+"service": {"mode": "guard", "delayMs": 500}
+```
+
+Khi bật:
+
+- Bấm **Home** trên launcher: Samsung Home hiện ra, khoảng nửa giây sau launcher mở lại.
+- Bấm **Home** khi đang xem ứng dụng mở từ launcher (FPT Play, Stremio, Nuvio, YouTube, Netflix...): launcher cũng quay lại.
+- Ứng dụng đang xem **không bị ngắt**, kể cả xem lâu. YouTube phát từ điện thoại cũng không bị ngắt.
+- **Không chen vào** Art Mode, chế độ chờ, menu Cài đặt hay Nguồn của Samsung.
+- Chọn **Samsung Home ↗** trong Cài đặt, hoặc bấm **Back** ở màn hình chính: service tạm nghỉ 10 phút để bạn dùng Samsung Home.
+
+Service chỉ **đọc** trạng thái TV (API cục bộ `127.0.0.1:8001` và nhóm CPU `cpu/running`, nơi TV đặt ứng dụng đang hiện)
+rồi mở launcher. Nó không chặn phím Home/Power, không sửa cài đặt Home hay khởi động. Gỡ launcher là gỡ luôn service.
+Muốn tắt: đổi thành `"mode": "observe"` hoặc xoá dòng `service`, rồi cài lại.
+
+`reportUrl` chỉ dùng khi gỡ lỗi (gửi nhật ký về máy tính trong mạng nhà). Bản dùng hằng ngày không nên có dòng này.
+
+## 12. Ghim lên đầu Home
 
 Phím Home vẫn mở Samsung Home (xem phần giới hạn). Để vào launcher nhanh nhất:
 
@@ -134,9 +174,9 @@ Phím Home vẫn mở Samsung Home (xem phần giới hạn). Để vào launche
 2. Chọn **CleanYourTizen**, rồi **Move** (Di chuyển) hoặc **Add to Home** (Thêm vào Home). Tên mục có thể khác tuỳ firmware.
 3. Đưa nó tới ô đầu tiên bằng mũi tên trái, bấm OK.
 
-Tuỳ chọn: bật chế độ **mở lại ứng dụng cuối cùng khi bật TV** trong cài đặt của Samsung. Với The Frame, hãy kiểm tra nó không làm ảnh hưởng Art Mode.
+Nên bật chế độ **mở lại ứng dụng cuối cùng khi bật TV** (*Autorun Last App*) trong cài đặt của Samsung, vì service nền không tự chạy lúc bật TV. Với The Frame, hãy kiểm tra nó không làm ảnh hưởng Art Mode.
 
-## 11. Cách dùng
+## 13. Cách dùng
 
 ![Màn hình chính](images/launcher-home.png)
 
@@ -145,18 +185,19 @@ Tuỳ chọn: bật chế độ **mở lại ứng dụng cuối cùng khi bật
   - **Wi-Fi:** tên mạng và độ mạnh tín hiệu.
   - **Cài đặt:** âm lượng (mũi tên trái/phải), tắt tiếng, hình nền, sắp xếp ứng dụng, Samsung Home.
 - **Hàng ứng dụng bên dưới:** OK để mở.
-- **Back** khi không mở menu nào: quay về Samsung Home.
+- **Phía trên:** lời chào, ngày âm lịch và đếm ngược ngày lễ.
+- **Back** khi không mở menu nào: quay về Samsung Home (service nền tạm nghỉ 10 phút).
 
 ![Menu nguồn vào](images/launcher-input.png)
 ![Menu cài đặt](images/launcher-settings.png)
 
-## 12. Cập nhật và gỡ
+## 14. Cập nhật và gỡ
 
 - **Cập nhật:** build lại, ký lại bằng **cùng Author certificate**, rồi chạy lại `tizen install`. Ký bằng chứng chỉ khác sẽ bị TV từ chối.
 - **Gỡ launcher:** `tizen uninstall -p CyTizen001.Home -s 192.168.1.50:26101`. Samsung Home vẫn nguyên vẹn.
 - Dùng xong, bạn có thể tắt Developer Mode trong TV.
 
-## 13. Xử lý sự cố
+## 15. Xử lý sự cố
 
 | Triệu chứng | Nguyên nhân thường gặp | Cách xử lý |
 |---|---|---|
@@ -168,10 +209,12 @@ Tuỳ chọn: bật chế độ **mở lại ứng dụng cuối cùng khi bật
 | `can not uninstall app` | Ứng dụng cài sẵn của hệ thống | Không gỡ được qua Developer Mode. Dùng cách ẩn trong Samsung Home nếu TV cho |
 | Nút mở Cài đặt/Hình ảnh/Âm thanh của Samsung không hoạt động | TV không cho ứng dụng ngoài mở các app hệ thống (`UnknownError`) | Là giới hạn của nền tảng, không phải lỗi cài đặt |
 | Ảnh nền không đổi sang ngày mới | TV đặt sai múi giờ hoặc chưa bấm phím nào | Bấm một phím bất kỳ, launcher kiểm tra lại ngày |
+| Bấm Home không quay lại launcher | Chưa bật `service.mode: guard`, đang trong 10 phút tạm nghỉ, hoặc chưa mở launcher lần nào từ lúc bật TV | Kiểm tra cấu hình, mở launcher một lần, đợi hết tạm nghỉ |
 | Icon vẫn là hình cũ sau khi cập nhật | Samsung Home giữ icon trong bộ nhớ đệm | Tắt TV bằng điều khiển rồi bật lại |
 
-## 14. Giới hạn bạn nên biết
+## 16. Giới hạn bạn nên biết
 
+- Service nền chỉ mở lại launcher **sau khi** Samsung Home hiện ra (khoảng nửa giây), không thay thế được phím Home.
 - Không thay được phím **Home**, **Power** và phím tắt thương hiệu (Disney+, VieON...). Chúng không nằm trong danh sách phím ứng dụng được phép nhận.
 - Không chỉnh được Hình ảnh, Hẹn giờ tắt từ launcher, và không mở được các app Cài đặt của Samsung.
 - Một số ứng dụng cài sẵn không gỡ được.
