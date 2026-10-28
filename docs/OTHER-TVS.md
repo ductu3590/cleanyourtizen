@@ -19,7 +19,7 @@ certificates, build, sign, install) are in the [step-by-step guide](GETTING-STAR
 Run the read-only `inspect` (guide, step 5), then list apps with their names:
 
 ```bat
-python -c "import json; [print(a['id'], '|', a['name']) for a in json.load(open('.local/before.json', encoding='utf-8'))['apps']]"
+python -X utf8 -c "import json; [print(a['id'], '|', a['name']) for a in json.load(open('.local/before.json', encoding='utf-8'))['apps']]"
 ```
 
 Append `| findstr /i prime` to filter by name.

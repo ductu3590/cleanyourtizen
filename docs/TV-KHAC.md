@@ -18,7 +18,7 @@ vẫn theo [hướng dẫn từng bước](HUONG-DAN.md).
 Chạy `inspect` (chỉ đọc) như bước 5 của hướng dẫn, rồi liệt kê ứng dụng kèm tên:
 
 ```bat
-python -c "import json; [print(a['id'], '|', a['name']) for a in json.load(open('.local/before.json', encoding='utf-8'))['apps']]"
+python -X utf8 -c "import json; [print(a['id'], '|', a['name']) for a in json.load(open('.local/before.json', encoding='utf-8'))['apps']]"
 ```
 
 Thêm `| findstr /i vieon` vào cuối để lọc theo tên. Một vài điểm cần biết:
