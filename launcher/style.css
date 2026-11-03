@@ -130,5 +130,27 @@ body.picking .dock,body.picking .clockblock,body.picking .today,body.picking .ch
 .app-tile.nudge-up,.lib-tile.nudge-up,.thumb.nudge-up{animation:lift-up .3s ease}.app-tile.nudge-down,.lib-tile.nudge-down,.thumb.nudge-down{animation:lift-down .3s ease}
 @keyframes lift-left{40%{transform:translate(-10px,-12px) scale(1.08)}}@keyframes lift-right{40%{transform:translate(10px,-12px) scale(1.08)}}
 @keyframes lift-up{40%{transform:translateY(-20px) scale(1.08)}}@keyframes lift-down{40%{transform:translateY(-5px) scale(1.08)}}
+/* ---- Live inputs ----
+   Preview: the TV video plane is behind the page, so html/body turn transparent and a full-screen copy of the
+   background (.live-backdrop, filled from JS) plus the wallpaper scrim are clipped with a hole at the tile
+   (--cyt-hole, a polygon set from JS). The live tile drops its colour; badge and name sit on a soft gradient. */
+.live-backdrop{display:none;position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;
+  -webkit-clip-path:var(--cyt-hole);clip-path:var(--cyt-hole)}
+html.previewing,html.previewing body,body.previewing{background:transparent!important}
+body.previewing .live-backdrop{display:block}
+body.previewing::before{-webkit-clip-path:var(--cyt-hole);clip-path:var(--cyt-hole)}
+.input-tile.live{background:transparent;justify-content:flex-end;padding-bottom:18px}
+.input-tile.live::before{content:'';position:absolute;left:0;right:0;bottom:0;height:58%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.62) 100%)}
+.input-tile.live .glyph{display:none}
+.input-tile.live .tile-label{position:relative;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.input-tile.live .badge{background:rgba(0,0,0,.42)}
+.input-tile.live::after{display:none}
+/* Device ready: a small glass note under the greeting that fades in and out. */
+.ready-banner{display:flex;align-items:center;gap:12px;margin:18px 0 0;padding:10px 24px 10px 18px;border-radius:30px;font-size:22px;white-space:nowrap;
+  opacity:0;-webkit-transform:translateY(-8px);transform:translateY(-8px);transition:opacity .35s ease,transform .35s ease}
+.ready-banner.show{opacity:1;-webkit-transform:none;transform:none}
+.ready-banner .glyph{width:32px;height:32px;flex:none;stroke-width:1.6;stroke:#9ff0bd}
+@media(max-width:1500px){.ready-banner{margin-top:12px;font-size:16px;padding:7px 18px 7px 14px}.ready-banner .glyph{width:24px;height:24px}}
 @media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.today{top:34px;width:620px;margin-left:-310px}.greeting{font-size:19px;padding:9px 20px}.events{font-size:16px;margin-top:12px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}.input-tile .glyph{width:56px;height:56px}.input-tile .tile-label{font-size:15px;margin-top:10px}.input-tile .badge{top:10px;right:10px;font-size:12px;padding:4px 9px}.library{left:48px;right:48px;top:30px;bottom:30px}.library-grid{grid-auto-rows:112px;gap:14px}.lib-tile .symbol{font-size:30px}.lib-name{font-size:13px;margin-top:8px}.lib-tile .icon{width:52px;height:52px}.library-tile .glyph{width:46px;height:46px}}
 @media(prefers-reduced-motion:reduce){*,*::after{transition:none!important;-webkit-animation:none!important;animation:none!important}}
