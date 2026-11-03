@@ -98,7 +98,7 @@ test('launcher page stays inside the strict CSP: no inline script, style or hand
 });
 test('launcher input list is limited to the configured sources and Back leaves video first', () => {
   const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
-  assert.ok(app.includes('core.inputChoices(value, config.inputs)'));
+  assert.ok(app.includes('core.inputChoices(value, inputsConfig)'));
   assert.ok(app.indexOf('if (videoOn) leaveVideo()') < app.indexOf('else returnHome()'));
   const cfg = fs.readFileSync(path.join(__dirname, '../launcher/config.js'), 'utf8');
   assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4, dock: true, label: 'PlayStation 4'\}\]/);
@@ -157,7 +157,7 @@ test('dock stays one row up to seven tiles, then wraps at seven', () => {
 });
 test('input tiles read the TV sources again before switching and Back returns focus to the tile', () => {
   const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
-  assert.ok(app.includes('core.dockInputs(config.inputs, null)'));
+  assert.ok(app.includes('core.dockInputs(inputsConfig, null)'));
   assert.match(app, /function openInputTile\(tile, button\) \{\s*readSources\(function \(value\) \{\s*refreshInputs\(value\);\s*if \(tile\.choice\) \{ selectSource\(tile\.choice, button\);/);
   assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-input'\);/);
   assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\); \}/);

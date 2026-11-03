@@ -15,8 +15,10 @@
   var storedDock = null;
   try { storedDock = JSON.parse(localStorage.getItem('cyt-dock-apps') || 'null'); } catch (error) { storedDock = null; }
   var dockList = core.dockApps(config.apps || [], storedDock);
+  // First-run setup (setup.js): inputs chosen on this TV replace the build's list when they are valid.
+  var setup = window.CytSetup, inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
   // Dock tiles: those apps plus inputs pinned with `dock: true`, in the order saved on this TV.
-  var tiles = core.orderApps(dockList.concat(core.dockInputs(config.inputs, null)), saved);
+  var tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), saved);
 
   function announce(text) {
     message.textContent = text; message.hidden = false;
@@ -45,7 +47,7 @@
   function clock() {
     var now = new Date();
     $('time').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    var hello = calendar.greeting(now, config.greetingName);
+    var hello = calendar.greeting(now, setup.storedGreeting(config.greetingName));
     $('greeting').textContent = hello.text;
     document.querySelector('.today').classList.toggle('night', hello.period === 'evening' || hello.period === 'night');
     if (shownDay === now.toDateString()) return;
@@ -144,7 +146,7 @@
   }
   function openInput() {
     readSources(function (value) {
-      showMenu('input', 'Nguồn vào', function () { buildInput(core.inputChoices(value, config.inputs)); });
+      showMenu('input', 'Nguồn vào', function () { buildInput(core.inputChoices(value, inputsConfig)); });
     });
   }
   function openWifi() {
@@ -169,6 +171,7 @@
         row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
       }
       row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
+      row('Thiết lập lại', '›', function () { setMenuOpen(null); openSetup(); });
       row('Samsung Home', '↗', returnHome);
     });
   }
@@ -228,7 +231,7 @@
   }
   // Refresh names and signal from the TV without rebuilding the dock, so focus stays where it is.
   function refreshInputs(value) {
-    core.dockInputs(config.inputs, value).forEach(function (fresh) {
+    core.dockInputs(inputsConfig, value).forEach(function (fresh) {
       var tile = tiles.filter(function (item) { return item.id === fresh.id; })[0];
       if (!tile) return;
       tile.name = fresh.name; tile.connected = fresh.connected; tile.choice = fresh.choice;
@@ -420,6 +423,7 @@
   document.addEventListener('keydown', function (event) {
     var key = event.key;
     clock(); wallpaper(); // Catch a missed resume event: the TV may wake with a stale date.
+    if (setup.isOpen()) { setup.onKey(event); return; } // setup owns every key, Back included
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
@@ -524,9 +528,22 @@
     picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
     (focusTarget || grid.firstChild).focus();
   }
+  // ---- First-run setup ----
+  function openSetup() {
+    setup.open({config: config, tv: tv, core: core, dock: dockList, inputs: inputsConfig, greeting: setup.storedGreeting(config.greetingName),
+      brand: brand, hello: calendar.greeting, moveFocus: moveFocus, announce: announce, onDone: applySetup});
+  }
+  // Apply the saved choices in place, without a reload, keeping the order saved on this TV.
+  function applySetup() {
+    inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
+    dockList = core.dockApps(config.apps || [], setup.readJson('cyt-dock-apps'));
+    tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), setup.readJson('cyt-order'));
+    render(); readInputs(); clock(); (dock.firstChild || $('btn-settings')).focus();
+  }
   function tick() { clock(); readWifi(); wallpaper(); readInputs(); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
   render(); readInputs(); (dock.firstChild || $('btn-settings')).focus();
+  if (setup.shouldShow(config)) openSetup();
 }());
