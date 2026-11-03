@@ -349,7 +349,9 @@ test('ambient CSS sits in one block before the narrow-screen rule and keeps redu
   const css = read('launcher/style.css');
   const start = css.indexOf('/* ---- Ambient: screensaver, night, contrast ---- */');
   assert.ok(start > 0 && start < css.indexOf('@media(max-width:1500px)'));
-  const block = css.slice(start, css.indexOf('@media(max-width:1500px)'));
+  // The block ends at the next feature block or the narrow-screen rule, whichever comes first.
+  const ends = [css.indexOf('/* ---- ', start + 10), css.indexOf('@media(max-width:1500px)', start)].filter((i) => i > start);
+  const block = css.slice(start, Math.min(...ends));
   // Night: a fixed, non-interactive veil, never a page-wide filter, and never over an HDMI picture.
   assert.match(block, /\.night-veil\{position:fixed;left:0;top:0;right:0;bottom:0;z-index:\d+;pointer-events:none;background:rgba\(20,10,0,\.28\)/);
   assert.ok(!/filter:/.test(block));

@@ -126,6 +126,7 @@
     slideTimer = setTimeout(function () { if (!openMenu) menu.hidden = true; }, 450);
   }
   function setMenuOpen(name) {
+    if (name) live.stop();
     var was = openMenu;
     openMenu = name; subBack = null;
     document.body.classList.toggle('menu-open', !!name);
@@ -172,6 +173,7 @@
     };
   }
   function selectSource(choice, returnTo) {
+    live.switching();
     videoReturn = returnTo || null;
     if (!tv || !tv.tvwindow) { announce('Bản xem trước · ' + choice.title); return; }
     try { tv.tvwindow.setSource(choice.source, enterVideo(choice), function () { announce('Không chuyển được sang ' + choice.title + '.'); }); }
@@ -181,7 +183,7 @@
     hideVideo(function () {
       document.documentElement.classList.remove('video'); document.body.classList.remove('video');
       var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-controls');
-      videoReturn = null; back.focus();
+      videoReturn = null; back.focus(); live.videoClosed();
     });
   }
   function buildInput(choices) {
@@ -296,6 +298,7 @@
       var button = inputButton(tile.id);
       if (button) drawInput(tile, button);
     });
+    live.refreshed();
   }
   function readInputs() {
     if (tiles.some(function (tile) { return tile.kind === 'input'; })) readSources(refreshInputs);
@@ -316,6 +319,8 @@
         var source = document.createElement('button');
         source.setAttribute('data-id', app.id); drawInput(app, source);
         source.addEventListener('click', function () { openInputTile(app, source); });
+        source.addEventListener('focus', function () { live.focus(app, source); });
+        source.addEventListener('blur', function () { live.blur(source); });
         dock.appendChild(source);
         return;
       }
@@ -535,6 +540,7 @@
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {
     ambient.visible(!document.hidden);
+    live.visibility(!document.hidden);
     core.tellService(tv, config.serviceId, document.hidden ? 'ui-hidden' : 'ui-visible', function () {});
     if (document.hidden) { clearInterval(clockTimer); clockTimer = null; }
     else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
@@ -586,6 +592,10 @@
     picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
     (focusTarget || grid.firstChild).focus();
   }
+  // ---- Live inputs: opt-in tile preview and the "device ready" hint (inputs-live.js) ----
+  var live = window.CytInputsLive.create({tv: tv, inputs: config.inputs, tiles: function () { return tiles; }, button: inputButton,
+    readSources: readSources, refreshInputs: refreshInputs, moveFocus: moveFocus, glyph: glyph, deviceStyle: core.deviceStyle,
+    state: function () { return {menu: !!openMenu, picking: picking, library: libraryOpen, panel: !panel.hidden, video: videoOn}; }});
   function tick() { clock(); readWifi(); wallpaper(); readInputs(); ambient.tick(new Date()); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
