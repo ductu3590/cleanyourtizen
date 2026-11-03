@@ -68,6 +68,32 @@ body.menu-open .clockblock,body.menu-open .today{opacity:.4}
 .input-tile .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);transition:background .25s}
 .input-tile .dot.on{background:#46d17c;box-shadow:0 0 8px rgba(70,209,124,.8)}
 .input-tile.idle .glyph,.input-tile.idle .tile-label{opacity:.6}
+.library-tile{background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5);border:1px solid rgba(255,255,255,.22)}
+.library-tile .glyph{width:64px;height:64px;stroke-width:1.6}
+.library-tile .tile-label{margin-top:16px;font-size:19px;letter-spacing:.3px}
+
+body.library-open .dock,body.library-open .clockblock,body.library-open .today,body.library-open .pill,body.library-open .caption{display:none}
+.library{position:absolute;left:94px;right:94px;top:54px;bottom:54px;display:flex;flex-direction:column;padding:30px 34px 22px;border-radius:36px;z-index:6}
+.library-header{display:flex;align-items:center;justify-content:space-between;margin:0 4px 22px}
+.library-header h2{margin:0;font-size:30px;font-weight:600}
+#library-count{margin-left:10px;font-size:20px;font-weight:400;color:rgba(255,255,255,.6)}
+.library-edit{padding:13px 26px;border-radius:26px;font-size:20px;background:rgba(255,255,255,.14)}
+.library-edit:focus{outline:none;background:rgba(255,255,255,.92);color:#1b2233}
+.library.editing .library-edit{background:#fff;color:#1b2233}
+.library-grid{flex:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:156px;gap:22px;overflow:hidden;padding:16px}
+.lib-tile{position:relative;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;box-shadow:0 10px 22px rgba(0,0,0,.3);transition:transform .18s ease,box-shadow .18s ease}
+.lib-tile:focus{outline:none;transform:scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.95),0 18px 34px rgba(0,0,0,.5)}
+.lib-tile .symbol{font-size:42px}
+.lib-tile.has-icon{background:rgba(255,255,255,.12)}
+.lib-tile.has-icon .symbol{display:none}
+.lib-tile .icon{width:76px;height:76px;object-fit:contain}
+.lib-name{max-width:100%;margin-top:12px;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-tile .pin{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;font-size:18px;font-weight:700;line-height:28px;text-align:center;opacity:0;transition:opacity .2s}
+.lib-tile.pinned .pin{opacity:1;background:rgba(255,255,255,.9);color:#1b2233}
+.library.editing .lib-tile .pin{opacity:1}
+.library.editing .lib-tile:not(.pinned) .pin{background:rgba(0,0,0,.35);color:#fff}
+.library-empty{grid-column:1/-1;align-self:center;text-align:center;font-size:22px;color:rgba(255,255,255,.7)}
+.library-hint{margin:14px 4px 0;font-size:17px;color:rgba(255,255,255,.65)}
 .mode{position:absolute;left:94px;bottom:34px;margin:0;font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.55)}
 
 .panel{padding:80px 100px;max-width:1600px;margin:auto;background:rgba(10,15,30,.72);min-height:100vh}
@@ -89,5 +115,5 @@ body.picking .dock,body.picking .clockblock,body.picking .today,body.picking .ch
 .thumb .tag{position:absolute;left:10px;bottom:10px;padding:5px 12px;border-radius:12px;font-size:16px;background:rgba(8,12,26,.62)}
 .thumb .check{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;background:#46d17c;color:#06210f;font-weight:700;font-size:19px;line-height:30px;text-align:center}
 .picker-hint{margin:16px 4px 0;font-size:16px;color:rgba(255,255,255,.65)}
-@media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.today{top:34px;width:620px;margin-left:-310px}.greeting{font-size:19px;padding:9px 20px}.events{font-size:16px;margin-top:12px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}.input-tile .glyph{width:56px;height:56px}.input-tile .tile-label{font-size:15px;margin-top:10px}.input-tile .badge{top:10px;right:10px;font-size:12px;padding:4px 9px}}
+@media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.today{top:34px;width:620px;margin-left:-310px}.greeting{font-size:19px;padding:9px 20px}.events{font-size:16px;margin-top:12px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}.input-tile .glyph{width:56px;height:56px}.input-tile .tile-label{font-size:15px;margin-top:10px}.input-tile .badge{top:10px;right:10px;font-size:12px;padding:4px 9px}.library{left:48px;right:48px;top:30px;bottom:30px}.library-grid{grid-auto-rows:112px;gap:14px}.lib-tile .symbol{font-size:30px}.lib-name{font-size:13px;margin-top:8px}.lib-tile .icon{width:52px;height:52px}.library-tile .glyph{width:46px;height:46px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

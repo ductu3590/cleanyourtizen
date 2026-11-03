@@ -154,6 +154,11 @@ Enable your TV's "resume last app on power on" setting (*Autorun Last App*), sin
 
 - **Top-right pill:** input switching (OK switches, Back returns), Wi-Fi name and signal, settings (volume, mute, wallpaper, arrange apps, Samsung Home).
 - **App row:** OK opens an app. **Back** with no menu open goes to Samsung Home (and pauses the service for 10 minutes).
+- **Ứng dụng** (last tile): every app the TV lists, sorted by name. OK opens one. **Sửa dock** turns on pinning: OK pins or
+  unpins (✓ = on the home row, up to 12 apps), Back leaves pinning, Back again closes the library. The `--apps` list from
+  `launcher-config` is only the starting set; once you pin on the TV, the TV's own list is used. Hidden system apps, the
+  launcher itself and Samsung Home are not listed (Samsung Home stays in Settings). If the TV refuses the app list, the
+  library shows the apps already on the home row.
 - **Top centre:** greeting, lunar date and holiday countdown.
 
 ![Input menu](images/launcher-input.png)
