@@ -524,5 +524,5 @@ test('preview server serves only top-level launcher page files, never config dir
   for (const bad of ['../cyt/cli.py', '.local/launcher.json', 'service/config.json', 'wallpapers/a.jpg', '.env', 'a.json', 'App.js', '%2e%2e/x.js']) {
     assert.ok(!allowed.test(bad), bad);
   }
-  assert.match(src, /listen\(4173, '127\.0\.0\.1'/);
+  assert.match(src, /listen\(port, '127\.0\.0\.1'/); // loopback only, whatever the port
 });
