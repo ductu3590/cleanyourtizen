@@ -46,6 +46,41 @@
     });
     return out;
   }
+  var INPUT_TYPE = /^[A-Z][A-Z0-9_]{0,15}$/;
+  function inputKey(item) {
+    if (!item || typeof item.type !== 'string' || !INPUT_TYPE.test(item.type)) return null;
+    if (typeof item.number !== 'number' || item.number % 1 !== 0 || item.number < 1 || item.number > 99) return null;
+    return item.type + ':' + item.number;
+  }
+  function cleanName(value) {
+    return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, 32) : '';
+  }
+  // Inputs the owner pinned to the dock with `dock: true`. Name: owner label, then the TV's name, then "HDMI 4".
+  // `connected` is null until the TV reports the source; `choice` carries the TV's own source object for setSource.
+  function dockInputs(allow, value) {
+    var out = [], seen = Object.create(null), known = Object.create(null);
+    inputChoices(value, allow).forEach(function (choice) { known[choice.key] = choice; });
+    (Array.isArray(allow) ? allow : []).forEach(function (item) {
+      var key = inputKey(item);
+      if (!key || item.dock !== true || seen[key]) return;
+      seen[key] = true;
+      var choice = known[key] || null, title = item.type + ' ' + item.number;
+      out.push({id: 'input:' + key, kind: 'input', key: key, title: title,
+        name: cleanName(item.label) || (choice && cleanName(choice.name)) || title,
+        connected: choice ? choice.connected : null, choice: choice});
+    });
+    return out;
+  }
+  function deviceStyle(name) {
+    var value = String(name || '').toLowerCase();
+    if (/playstation|\bps[1-5]\b/.test(value)) return 'console playstation';
+    if (/xbox|nintendo|console|game/.test(value)) return 'console';
+    return 'device';
+  }
+  // One calm row: five columns by default, widening to seven before a second row starts.
+  function dockColumns(count) {
+    return Math.max(5, Math.min(7, typeof count === 'number' ? Math.floor(count) : 0));
+  }
   function wifiInfo(value) {
     var on = !!value && value.status === 'ON' && typeof value.ssid === 'string' && value.ssid !== '';
     var strength = on && typeof value.signalStrength === 'number' ? Math.max(0, Math.min(1, value.signalStrength)) : 0;
@@ -86,5 +121,5 @@
     } catch (error) { finish(); }
   }
   return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
-    wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume, tellService: tellService};
+    dockInputs: dockInputs, deviceStyle: deviceStyle, dockColumns: dockColumns, wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume, tellService: tellService};
 }));

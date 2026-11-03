@@ -80,6 +80,16 @@ Optionally add the inputs shown in the input menu to `.local/launcher.json`; the
 "inputs": [{"type": "HDMI", "number": 4}]
 ```
 
+To also show an input as a tile in the app row (for example a PlayStation 4), add `"dock": true`. An optional `"label"`
+replaces the name the TV reports:
+
+```json
+"inputs": [{"type": "HDMI", "number": 4, "dock": true, "label": "PS4"}]
+```
+
+The tile shows the device name, a small `HDMI 4` badge and a green dot while the device has a signal; it dims when there is none.
+OK switches to the input, Back returns to the tile. Move it in **Settings → Sắp xếp ứng dụng** like any app.
+
 ## 8. Optional: daily wallpapers
 
 Put `jpg`/`png` files (1920x1080 recommended, at most 2.5 MB each, at most 60, simple file names) into a folder such as `.local/wallpapers`

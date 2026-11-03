@@ -8,10 +8,11 @@
   var CAPTIONS = {input: 'Nguồn vào', wifi: 'Wi-Fi', settings: 'Cài đặt'};
   var MAIN_RECT = ['0px', '0px', '1920px', '1080px'];
   var timer, saved = [], openMenu = null, videoOn = false, clockTimer = null, picking = false, pickerBack = null;
-  var preference = 'auto';
+  var videoReturn = null, preference = 'auto';
   try { preference = localStorage.getItem('cyt-wallpaper') || 'auto'; } catch (error) { preference = 'auto'; }
   try { saved = JSON.parse(localStorage.getItem('cyt-order') || '[]'); } catch (error) { saved = []; }
-  var apps = core.orderApps(config.apps || [], saved);
+  // Dock tiles: app shortcuts plus inputs pinned with `dock: true`, in the order saved on this TV.
+  var tiles = core.orderApps((config.apps || []).concat(core.dockInputs(config.inputs, null)), saved);
 
   function announce(text) {
     message.textContent = text; message.hidden = false;
@@ -117,7 +118,8 @@
       } catch (error) { announce('TV chưa cho phép hiển thị nguồn này.'); }
     };
   }
-  function selectSource(choice) {
+  function selectSource(choice, returnTo) {
+    videoReturn = returnTo || null;
     if (!tv || !tv.tvwindow) { announce('Bản xem trước · ' + choice.title); return; }
     try { tv.tvwindow.setSource(choice.source, enterVideo(choice), function () { announce('Không chuyển được sang ' + choice.title + '.'); }); }
     catch (error) { announce('TV chưa cho phép chuyển nguồn này.'); }
@@ -125,7 +127,8 @@
   function leaveVideo() {
     hideVideo(function () {
       document.documentElement.classList.remove('video'); document.body.classList.remove('video');
-      $('btn-input').focus();
+      var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-input');
+      videoReturn = null; back.focus();
     });
   }
   function buildInput(choices) {
@@ -187,9 +190,69 @@
     if (value.indexOf('netflix') >= 0) return ['netflix', 'N', 'NETFLIX'];
     return ['generic', name.substring(0, 2).toUpperCase(), name];
   }
+  var SVG = 'http://www.w3.org/2000/svg';
+  var GLYPHS = {
+    console: ['M7 8h10a4 4 0 0 1 3.9 3.1l1 4.6a2.6 2.6 0 0 1-4.5 2.2L15.5 16h-7l-1.9 1.9a2.6 2.6 0 0 1-4.5-2.2l1-4.6A4 4 0 0 1 7 8z',
+      'M8 10.5v3M6.5 12h3', 'M15.5 11h.01M17.5 13h.01'],
+    device: ['M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5']
+  };
+  function glyph(kind) {
+    var icon = document.createElementNS(SVG, 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('class', 'glyph'); icon.setAttribute('aria-hidden', 'true');
+    GLYPHS[kind].forEach(function (shape) {
+      var line = document.createElementNS(SVG, 'path'); line.setAttribute('d', shape); icon.appendChild(line);
+    });
+    return icon;
+  }
+  // An input tile: device glyph, the device name and a quiet "HDMI 4" badge whose dot shows the signal.
+  function drawInput(tile, button) {
+    var style = core.deviceStyle(tile.name);
+    var state = tile.connected === true ? ', đang kết nối' : tile.connected === false ? ', không có tín hiệu' : '';
+    button.className = 'app-tile input-tile ' + style + (tile.connected === false ? ' idle' : '');
+    button.setAttribute('aria-label', tile.name + ', ' + tile.title + state);
+    button.textContent = '';
+    var badge = document.createElement('span'); badge.className = 'badge';
+    var dot = document.createElement('i'); dot.className = 'dot' + (tile.connected === true ? ' on' : '');
+    badge.appendChild(dot); badge.appendChild(document.createTextNode(tile.title));
+    var label = document.createElement('span'); label.className = 'tile-label'; label.textContent = tile.name;
+    button.appendChild(badge); button.appendChild(glyph(style.indexOf('console') === 0 ? 'console' : 'device'));
+    button.appendChild(label);
+  }
+  function inputButton(id) {
+    return Array.prototype.filter.call(dock.children, function (button) { return button.getAttribute('data-id') === id; })[0];
+  }
+  // Refresh names and signal from the TV without rebuilding the dock, so focus stays where it is.
+  function refreshInputs(value) {
+    core.dockInputs(config.inputs, value).forEach(function (fresh) {
+      var tile = tiles.filter(function (item) { return item.id === fresh.id; })[0];
+      if (!tile) return;
+      tile.name = fresh.name; tile.connected = fresh.connected; tile.choice = fresh.choice;
+      var button = inputButton(tile.id);
+      if (button) drawInput(tile, button);
+    });
+  }
+  function readInputs() {
+    if (tiles.some(function (tile) { return tile.kind === 'input'; })) readSources(refreshInputs);
+  }
+  // Read the sources again on OK: the TV's source object is required, and the device may have just woken.
+  function openInputTile(tile, button) {
+    readSources(function (value) {
+      refreshInputs(value);
+      if (tile.choice) { selectSource(tile.choice, button); return; }
+      announce(tv ? 'TV chưa báo nguồn ' + tile.title + '. Thử lại bằng nút Nguồn vào.' : 'Bản xem trước · ' + tile.name + ' (' + tile.title + ')');
+    });
+  }
   function render() {
     dock.textContent = '';
-    apps.forEach(function (app) {
+    dock.setAttribute('data-cols', String(core.dockColumns(tiles.length)));
+    tiles.forEach(function (app) {
+      if (app.kind === 'input') {
+        var source = document.createElement('button');
+        source.setAttribute('data-id', app.id); drawInput(app, source);
+        source.addEventListener('click', function () { openInputTile(app, source); });
+        dock.appendChild(source);
+        return;
+      }
       var identity = brand(app.name), button = document.createElement('button');
       button.className = 'app-tile ' + identity[0];
       button.setAttribute('aria-label', app.name);
@@ -199,16 +262,17 @@
       button.addEventListener('click', function () { openShortcut(app.id); });
       dock.appendChild(button);
     });
-    if (!apps.length) announce('Chưa có ứng dụng được chọn. Nút Cài đặt → Samsung Home luôn sẵn sàng.');
+    if (!tiles.length) announce('Chưa có ứng dụng được chọn. Nút Cài đặt → Samsung Home luôn sẵn sàng.');
   }
   function closePanel() { panel.hidden = true; home.hidden = false; $('btn-settings').focus(); }
   function openPanel() {
     var target = $('arrange'); target.textContent = '';
-    apps.forEach(function (app, index) {
-      var button = document.createElement('button'); button.textContent = ('0' + (index + 1)).slice(-2) + '  ' + app.name + '  ↑';
+    tiles.forEach(function (app, index) {
+      var button = document.createElement('button');
+      button.textContent = ('0' + (index + 1)).slice(-2) + '  ' + app.name + (app.kind === 'input' ? '  ·  ' + app.title : '') + '  ↑';
       button.addEventListener('click', function () {
-        apps.splice(index, 1); apps.unshift(app);
-        try { localStorage.setItem('cyt-order', JSON.stringify(apps.map(function (item) { return item.id; }))); }
+        tiles.splice(index, 1); tiles.unshift(app);
+        try { localStorage.setItem('cyt-order', JSON.stringify(tiles.map(function (item) { return item.id; }))); }
         catch (error) { announce('Không lưu được thứ tự. Thay đổi vẫn có hiệu lực trong phiên này.'); }
         render(); openPanel();
       });
@@ -226,8 +290,8 @@
   $('close-panel').addEventListener('click', closePanel);
 
   function focusRows() {
-    var rows = [pill], tiles = Array.prototype.slice.call(dock.children);
-    for (var start = 0; start < tiles.length; start += 5) rows.push(tiles.slice(start, start + 5));
+    var rows = [pill], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
+    for (var start = 0; start < buttons.length; start += cols) rows.push(buttons.slice(start, start + cols));
     return rows;
   }
   document.addEventListener('keydown', function (event) {
@@ -328,9 +392,9 @@
     picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
     (focusTarget || grid.firstChild).focus();
   }
-  function tick() { clock(); readWifi(); wallpaper(); }
+  function tick() { clock(); readWifi(); wallpaper(); readInputs(); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
-  render(); (dock.firstChild || $('btn-settings')).focus();
+  render(); readInputs(); (dock.firstChild || $('btn-settings')).focus();
 }());
