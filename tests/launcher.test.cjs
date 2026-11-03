@@ -23,6 +23,17 @@ test('corrupt persisted state falls back without losing apps', () => {
 test('prototype-shaped IDs are treated as data', () => {
   assert.deepEqual(core.orderApps([{id:'__proto__'},{id:'constructor'}],['constructor']).map(a=>a.id),['constructor','__proto__']);
 });
+test('an app moves up one place or straight to the front without changing the current list', () => {
+  const apps = [{id:'a'},{id:'b'},{id:'c'},{id:'d'}];
+  const ids = (list) => list.map((app) => app.id);
+  assert.deepEqual(ids(core.moveItem(apps, 2, 1)), ['a','c','b','d']);
+  assert.deepEqual(ids(core.moveItem(apps, 2, 0)), ['c','a','b','d']);
+  assert.deepEqual(ids(core.moveItem(apps, 3, 2)), ['a','b','d','c']);
+  assert.deepEqual(ids(core.moveItem(apps, 0, -1)), ['a','b','c','d']);
+  assert.deepEqual(ids(core.moveItem(apps, 3, 99)), ['a','b','c','d']);
+  assert.deepEqual(core.moveItem(null, 0, 0), []);
+  assert.deepEqual(ids(apps), ['a','b','c','d']);
+});
 test('successful launch uses the public Tizen API', () => {
   let actual, success=false;
   core.launch({application:{launch(id, ok){actual=id;ok();}}},'test.App',()=>success=true,()=>assert.fail());
@@ -485,6 +496,19 @@ test('library opens apps through the guard-aware path, falls back when the TV re
   assert.match(app, /tiles = core\.orderApps\(dockList\.concat\(inputs\), order\);\s*\/\/[^\n]*\n\s*try \{ localStorage\.setItem\('cyt-order'/);
   assert.ok(!app.includes('innerHTML'));
   assert.ok(!/style\.backgroundImage = 'url\("' \+ app\.icon/.test(app)); // icons go through img.src, never CSS
+});
+test('the arrange panel offers one step up and straight to the front as separate buttons', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '../launcher/index.html'), 'utf8');
+  assert.match(html, /Lên 1 bậc/);
+  assert.match(html, /Lên đầu/);
+  assert.match(app, /arrangeTo\(index, Math\.max\(0, index - 1\), 'up'\)/);
+  assert.match(app, /arrangeTo\(index, 0, 'top'\)/);
+  assert.match(app, /tiles = core\.moveItem\(tiles, index, to\)/);
+  assert.match(app, /function saveOrder\(\) \{\s*try \{ localStorage\.setItem\('cyt-order'/);
+  // The panel is navigated as rows: Xong, then the two actions of each app side by side.
+  assert.match(app, /panelRows\.push\(Array\.prototype\.slice\.call\(line\.querySelectorAll\('button'\)\)\)/);
+  assert.ok(!app.includes("'  ↑'"));
 });
 test('the preview-only library list is not shipped: build writes its own config.js', () => {
   const cli = fs.readFileSync(path.join(__dirname, '../cyt/cli.py'), 'utf8');

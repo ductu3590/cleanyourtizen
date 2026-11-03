@@ -474,20 +474,42 @@
     }
   });
   function closePanel() { panel.hidden = true; home.hidden = false; centerButton.focus(); }
-  function openPanel() {
+  function saveOrder() {
+    try { localStorage.setItem('cyt-order', JSON.stringify(tiles.map(function (item) { return item.id; }))); }
+    catch (error) { announce('Không lưu được thứ tự. Thay đổi vẫn có hiệu lực trong phiên này.'); }
+  }
+  // Move one app, save the new order, rebuild the dock and keep focus on the same action at its new place.
+  function arrangeTo(index, to, action) {
+    if (index === to) { announce('Ứng dụng đã ở đầu hàng.'); return; }
+    tiles = core.moveItem(tiles, index, to);
+    saveOrder(); render(); openPanel({index: to, action: action});
+  }
+  function openPanel(keep) {
     var target = $('arrange'); target.textContent = '';
+    var focusTarget = null;
     tiles.forEach(function (app, index) {
-      var button = document.createElement('button');
-      button.textContent = ('0' + (index + 1)).slice(-2) + '  ' + app.name + (app.kind === 'input' ? '  ·  ' + app.title : '') + '  ↑';
-      button.addEventListener('click', function () {
-        tiles.splice(index, 1); tiles.unshift(app);
-        try { localStorage.setItem('cyt-order', JSON.stringify(tiles.map(function (item) { return item.id; }))); }
-        catch (error) { announce('Không lưu được thứ tự. Thay đổi vẫn có hiệu lực trong phiên này.'); }
-        render(); openPanel();
-      });
-      target.appendChild(button);
+      var line = document.createElement('div'); line.className = 'arrange-row';
+      var label = document.createElement('span'); label.className = 'arrange-label';
+      label.textContent = ('0' + (index + 1)).slice(-2) + '  ' + app.name + (app.kind === 'input' ? '  ·  ' + app.title : '');
+      var actions = document.createElement('span'); actions.className = 'arrange-actions';
+      // Two separate actions: one step up, or straight to the front of the row.
+      var up = document.createElement('button');
+      up.textContent = '↑ Lên 1 bậc';
+      up.setAttribute('aria-label', 'Đưa ' + app.name + ' lên một bậc');
+      if (index === 0) up.setAttribute('aria-disabled', 'true');
+      up.addEventListener('click', function () { arrangeTo(index, Math.max(0, index - 1), 'up'); });
+      var top = document.createElement('button');
+      top.textContent = '⇧ Lên đầu';
+      top.setAttribute('aria-label', 'Đưa ' + app.name + ' lên đầu hàng');
+      if (index === 0) top.setAttribute('aria-disabled', 'true');
+      top.addEventListener('click', function () { arrangeTo(index, 0, 'top'); });
+      actions.appendChild(up); actions.appendChild(top);
+      line.appendChild(label); line.appendChild(actions);
+      target.appendChild(line);
+      if (keep && keep.index === index && keep.action === 'up') focusTarget = up;
+      if (keep && keep.index === index && keep.action === 'top') focusTarget = top;
     });
-    home.hidden = true; panel.hidden = false; $('close-panel').focus();
+    home.hidden = true; panel.hidden = false; (focusTarget || $('close-panel')).focus();
   }
 
   // ---- Wiring ----
@@ -569,9 +591,17 @@
       return;
     }
     if (!panel.hidden) {
-      var list = [$('close-panel')].concat(Array.prototype.slice.call(document.querySelectorAll('#arrange button')));
-      var index = list.indexOf(document.activeElement), next = core.step(index < 0 ? 0 : index, list.length, key);
-      if (next >= 0) moveFocus(list[next], key);
+      var panelRows = [[$('close-panel')]];
+      Array.prototype.slice.call(document.querySelectorAll('#arrange .arrange-row')).forEach(function (line) {
+        panelRows.push(Array.prototype.slice.call(line.querySelectorAll('button')));
+      });
+      var panelSpot = {row: 0, col: 0};
+      panelRows.forEach(function (line, rowIndex) {
+        var col = line.indexOf(document.activeElement);
+        if (col >= 0) panelSpot = {row: rowIndex, col: col};
+      });
+      var nextPanel = core.nextFocus(panelRows, panelSpot, key);
+      moveFocus(panelRows[nextPanel.row][nextPanel.col], key);
       return;
     }
     var grid = focusRows(), position = {row: 0, col: 0};

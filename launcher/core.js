@@ -23,6 +23,15 @@
     });
     return result;
   }
+  // Move one item to another position without mutating the caller's list. Out-of-range targets clamp.
+  function moveItem(list, from, to) {
+    var out = Array.isArray(list) ? list.slice() : [];
+    if (from < 0 || from >= out.length) return out;
+    var target = Math.max(0, Math.min(out.length - 1, to));
+    if (from === target) return out;
+    out.splice(target, 0, out.splice(from, 1)[0]);
+    return out;
+  }
   var APP_ID = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,159}$/;
   function launch(api, id, success, failure) {
     if (!APP_ID.test(id || '')) { failure('Ứng dụng không hợp lệ.'); return; }
@@ -160,7 +169,7 @@
       setTimeout(finish, 1500); // a silent service must never trap the user in the launcher
     } catch (error) { finish(); }
   }
-  return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
+  return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, moveItem: moveItem, launch: launch, inputChoices: inputChoices,
     dockInputs: dockInputs, deviceStyle: deviceStyle, dockColumns: dockColumns, wifiInfo: wifiInfo,
     nudgeClass: nudgeClass, libraryApps: libraryApps, dockApps: dockApps, togglePin: togglePin, DOCK_MAX: DOCK_MAX, step: step, adjustVolume: adjustVolume, tellService: tellService};
 }));
