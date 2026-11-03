@@ -19,6 +19,8 @@ Use exact model/firmware and a private session directory. These checks are separ
 - [ ] D-pad reaches every tile and toolbar action; OK opens the selected installed app.
 - [ ] Return provides escape to stock Home; physical Home still opens Samsung Home.
 - [ ] Shortcut order survives a launcher restart.
+- [ ] Focus motion is smooth on the TV (no stutter when holding an arrow key); the focused tile is easy to spot from the sofa,
+      also on dark tiles such as Netflix; an edge press nudges and settles.
 - [ ] An input tile (`dock: true`) shows the TV's device name; its dot is green only while the device has a signal.
 - [ ] OK on the input tile shows the input; Back returns focus to that tile; the input menu still works.
 - [ ] The Ứng dụng tile lists installed apps from `getAppsInfo`; hidden system apps, the launcher and Samsung Home are absent.

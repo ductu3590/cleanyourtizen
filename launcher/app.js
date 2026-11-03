@@ -396,6 +396,22 @@
   });
   $('close-panel').addEventListener('click', closePanel);
 
+  // Move focus, or at an edge nudge the focused item toward the key so the press is never silent.
+  var NUDGE_NAMES = ['nudge-left', 'nudge-right', 'nudge-up', 'nudge-down'];
+  function moveFocus(target, key) {
+    var here = document.activeElement;
+    if (target && target !== here) { target.focus(); return; }
+    var name = core.nudgeClass(key);
+    if (!name || !here || !here.classList) return;
+    NUDGE_NAMES.forEach(function (old) { here.classList.remove(old); });
+    void here.offsetWidth; // restart the animation on repeated presses
+    here.classList.add(name);
+  }
+  document.addEventListener('animationend', function (event) {
+    if (event.target && event.target.classList && /^(flat|lift)-/.test(event.animationName)) {
+      NUDGE_NAMES.forEach(function (old) { event.target.classList.remove(old); });
+    }
+  });
   function focusRows() {
     var rows = [pill], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
     for (var start = 0; start < buttons.length; start += cols) rows.push(buttons.slice(start, start + cols));
@@ -425,7 +441,7 @@
       for (var from = 0; from < thumbs.length; from += 5) lines.push(thumbs.slice(from, from + 5));
       var here = {row: 0, col: 0};
       lines.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) here = {row: rowIndex, col: col}; });
-      var moved = core.nextFocus(lines, here, key); lines[moved.row][moved.col].focus();
+      var moved = core.nextFocus(lines, here, key); moveFocus(lines[moved.row][moved.col], key);
       return;
     }
     if (libraryOpen) {
@@ -433,7 +449,7 @@
       for (var cell = 0; cell < cells.length; cell += LIBRARY_COLS) table.push(cells.slice(cell, cell + LIBRARY_COLS));
       var spot = {row: 0, col: 0};
       table.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) spot = {row: rowIndex, col: col}; });
-      var go = core.nextFocus(table, spot, key); table[go.row][go.col].focus();
+      var go = core.nextFocus(table, spot, key); moveFocus(table[go.row][go.col], key);
       return;
     }
     if (openMenu) {
@@ -443,18 +459,18 @@
         return;
       }
       var to = core.step(at < 0 ? 0 : at, rows.length, key);
-      if (to >= 0 && rows[to]) rows[to].focus();
+      if (to >= 0 && rows[to]) moveFocus(rows[to], key);
       return;
     }
     if (!panel.hidden) {
       var list = [$('close-panel')].concat(Array.prototype.slice.call(document.querySelectorAll('#arrange button')));
       var index = list.indexOf(document.activeElement), next = core.step(index < 0 ? 0 : index, list.length, key);
-      if (next >= 0) list[next].focus();
+      if (next >= 0) moveFocus(list[next], key);
       return;
     }
     var grid = focusRows(), position = {row: 0, col: 0};
     grid.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) position = {row: rowIndex, col: col}; });
-    var target = core.nextFocus(grid, position, key); grid[target.row][target.col].focus();
+    var target = core.nextFocus(grid, position, key); moveFocus(grid[target.row][target.col], key);
   });
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {

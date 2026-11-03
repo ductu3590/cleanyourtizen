@@ -49,8 +49,7 @@ time{display:block;margin-top:6px;font-size:168px;line-height:1;font-weight:700;
 .dock{position:absolute;left:94px;right:94px;bottom:96px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:26px;transition:filter .25s,opacity .25s}
 body.menu-open .dock{-webkit-filter:blur(16px) brightness(.75);filter:blur(16px) brightness(.75)}
 body.menu-open .clockblock,body.menu-open .today{opacity:.4}
-.app-tile{position:relative;height:210px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 14px 28px rgba(0,0,0,.35);transition:transform .18s ease,box-shadow .18s ease}
-.app-tile:focus{outline:none;transform:translateY(-10px) scale(1.05);box-shadow:0 0 0 5px rgba(255,255,255,.95),0 24px 40px rgba(0,0,0,.5)}
+.app-tile{position:relative;height:210px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 14px 28px rgba(0,0,0,.35)}
 .symbol{font-weight:700;font-size:58px;letter-spacing:-2px;line-height:1}
 .tile-label{font-weight:600;font-size:17px;letter-spacing:2px;margin-top:16px}
 .fpt{background:linear-gradient(145deg,#ff9c31,#e95306)}.fpt .symbol{font-style:italic}
@@ -80,9 +79,8 @@ body.library-open .dock,body.library-open .clockblock,body.library-open .today,b
 .library-edit{padding:13px 26px;border-radius:26px;font-size:20px;background:rgba(255,255,255,.14)}
 .library-edit:focus{outline:none;background:rgba(255,255,255,.92);color:#1b2233}
 .library.editing .library-edit{background:#fff;color:#1b2233}
-.library-grid{flex:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:156px;gap:22px;overflow:hidden;padding:16px}
-.lib-tile{position:relative;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;box-shadow:0 10px 22px rgba(0,0,0,.3);transition:transform .18s ease,box-shadow .18s ease}
-.lib-tile:focus{outline:none;transform:scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.95),0 18px 34px rgba(0,0,0,.5)}
+.library-grid{flex:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:156px;gap:22px;overflow:hidden;padding:24px 20px}
+.lib-tile{position:relative;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;box-shadow:0 10px 22px rgba(0,0,0,.3)}
 .lib-tile .symbol{font-size:42px}
 .lib-tile.has-icon{background:rgba(255,255,255,.12)}
 .lib-tile.has-icon .symbol{display:none}
@@ -110,10 +108,27 @@ body.picking .dock,body.picking .clockblock,body.picking .today,body.picking .ch
 .picker{position:absolute;left:94px;right:94px;bottom:70px;padding:26px 28px 20px;border-radius:34px;z-index:6}
 .picker h2{margin:0 4px 18px;font-size:22px;font-weight:600;color:rgba(255,255,255,.85)}
 .picker-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
-.thumb{position:relative;height:150px;border-radius:18px;background-color:#1c2540;background-size:cover;background-position:center;box-shadow:0 8px 18px rgba(0,0,0,.35);transition:transform .15s ease}
-.thumb:focus{outline:none;transform:scale(1.05);box-shadow:0 0 0 5px rgba(255,255,255,.95),0 16px 30px rgba(0,0,0,.5)}
+.thumb{position:relative;height:150px;border-radius:18px;background-color:#1c2540;background-size:cover;background-position:center;box-shadow:0 8px 18px rgba(0,0,0,.35)}
 .thumb .tag{position:absolute;left:10px;bottom:10px;padding:5px 12px;border-radius:12px;font-size:16px;background:rgba(8,12,26,.62)}
 .thumb .check{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;background:#46d17c;color:#06210f;font-weight:700;font-size:19px;line-height:30px;text-align:center}
 .picker-hint{margin:16px 4px 0;font-size:16px;color:rgba(255,255,255,.65)}
+/* ---- Focus motion, tvOS-like: the focused tile lifts on a light spring, casts a deep soft shadow and catches one
+   sweep of light. No ring. Only transform and opacity animate, so the TV's compositor does the work. ---- */
+.app-tile,.lib-tile,.thumb{overflow:hidden;transition:transform .34s cubic-bezier(.3,1.35,.5,1),box-shadow .34s ease}
+.app-tile:focus,.lib-tile:focus,.thumb:focus{outline:none;z-index:1;-webkit-transform:translateY(-12px) scale(1.08);transform:translateY(-12px) scale(1.08);
+  box-shadow:0 36px 50px -16px rgba(0,0,0,.62),0 12px 22px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.38),inset 0 0 0 1px rgba(255,255,255,.16)}
+.app-tile::after,.lib-tile::after,.thumb::after{content:'';position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;pointer-events:none;opacity:0;
+  background:linear-gradient(105deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.3) 48%,rgba(255,255,255,0) 66%);-webkit-transform:translateX(-110%);transform:translateX(-110%)}
+.app-tile:focus::after,.lib-tile:focus::after,.thumb:focus::after{-webkit-animation:sheen .85s ease-out .12s 1 both;animation:sheen .85s ease-out .12s 1 both}
+@-webkit-keyframes sheen{0%{opacity:1;-webkit-transform:translateX(-110%)}80%{opacity:1}100%{opacity:0;-webkit-transform:translateX(110%)}}
+@keyframes sheen{0%{opacity:1;transform:translateX(-110%)}80%{opacity:1}100%{opacity:0;transform:translateX(110%)}}
+/* At an edge the focus cannot move: the focused item leans toward the key and settles back. */
+.nudge-left{animation:flat-left .3s ease}.nudge-right{animation:flat-right .3s ease}.nudge-up{animation:flat-up .3s ease}.nudge-down{animation:flat-down .3s ease}
+@keyframes flat-left{40%{transform:translateX(-7px)}}@keyframes flat-right{40%{transform:translateX(7px)}}
+@keyframes flat-up{40%{transform:translateY(-6px)}}@keyframes flat-down{40%{transform:translateY(6px)}}
+.app-tile.nudge-left,.lib-tile.nudge-left,.thumb.nudge-left{animation:lift-left .3s ease}.app-tile.nudge-right,.lib-tile.nudge-right,.thumb.nudge-right{animation:lift-right .3s ease}
+.app-tile.nudge-up,.lib-tile.nudge-up,.thumb.nudge-up{animation:lift-up .3s ease}.app-tile.nudge-down,.lib-tile.nudge-down,.thumb.nudge-down{animation:lift-down .3s ease}
+@keyframes lift-left{40%{transform:translate(-10px,-12px) scale(1.08)}}@keyframes lift-right{40%{transform:translate(10px,-12px) scale(1.08)}}
+@keyframes lift-up{40%{transform:translateY(-20px) scale(1.08)}}@keyframes lift-down{40%{transform:translateY(-5px) scale(1.08)}}
 @media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.today{top:34px;width:620px;margin-left:-310px}.greeting{font-size:19px;padding:9px 20px}.events{font-size:16px;margin-top:12px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}.input-tile .glyph{width:56px;height:56px}.input-tile .tile-label{font-size:15px;margin-top:10px}.input-tile .badge{top:10px;right:10px;font-size:12px;padding:4px 9px}.library{left:48px;right:48px;top:30px;bottom:30px}.library-grid{grid-auto-rows:112px;gap:14px}.lib-tile .symbol{font-size:30px}.lib-name{font-size:13px;margin-top:8px}.lib-tile .icon{width:52px;height:52px}.library-tile .glyph{width:46px;height:46px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::after{transition:none!important;-webkit-animation:none!important;animation:none!important}}

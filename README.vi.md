@@ -22,6 +22,8 @@
 - **Chuyển nguồn vào** với đúng tên thiết bị mà TV báo (ví dụ máy chơi game ở HDMI 4), và có thể đặt thiết bị như
   PlayStation 4 thành **một ô trong hàng ứng dụng**, có chấm nhỏ báo thiết bị đang có tín hiệu.
 - **Wi-Fi** (tên mạng, tín hiệu), **âm lượng và tắt tiếng**, màn hình sắp xếp ứng dụng.
+- **Hiệu ứng focus** theo tinh thần tvOS: ô đang chọn nâng lên với bóng mềm và một vệt sáng lướt qua; bấm tới mép thì ô
+  khẽ nghiêng về phía đó thay vì đứng im.
 - **Ảnh nền đổi mỗi ngày** từ ảnh của chính bạn, có bảng chọn nhanh xem trước từng ảnh.
 - **Service nền (tuỳ chọn)** mở lại launcher khi bấm Home, nhưng không chen vào Art Mode, chế độ chờ hay ứng dụng đang xem. Xem [hướng dẫn, mục 11](docs/HUONG-DAN.md).
 - Toàn bộ là HTML/CSS/JS chạy cục bộ, không gọi mạng, không tài khoản, không theo dõi.

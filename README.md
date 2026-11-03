@@ -23,6 +23,8 @@ Art Mode stay untouched.
 - An **app library** with every app the TV lists, opened from the last tile in the row. **Sửa dock** pins or unpins apps
   on the TV itself, without rebuilding; the choice is saved on that TV.
 - **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
+- **Focus motion** in the spirit of tvOS: the selected tile lifts with a soft shadow and a sweep of light, and an edge press
+  nudges instead of doing nothing. Only transform and opacity animate.
 - **Daily wallpaper** from your own images, with a quick picker that previews each one live.
 - Optional background service that brings the launcher back when Home is pressed, while leaving Art Mode, standby and running apps alone.
 - Everything is local HTML/CSS/JS. No network calls, no accounts, no analytics.

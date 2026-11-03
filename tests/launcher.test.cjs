@@ -489,3 +489,31 @@ test('the preview-only library list is not shipped: build writes its own config.
   const cli = fs.readFileSync(path.join(__dirname, '../cyt/cli.py'), 'utf8');
   assert.match(cli, /\(destination \/ 'config\.js'\)\.write_text\('window\.CYT_CONFIG = '/);
 });
+
+test('focus motion lifts tiles without a ring and animates only transform and opacity', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../launcher/style.css'), 'utf8');
+  const focus = css.match(/\.app-tile:focus,\.lib-tile:focus,\.thumb:focus\{([^}]*)\}/);
+  assert.ok(focus, 'shared focus rule');
+  assert.match(focus[1], /transform:translateY\(-12px\) scale\(1\.08\)/);
+  assert.ok(!/0 0 0 [45]px rgba\(255,255,255,\.95\)/.test(css), 'the thick white focus ring is gone');
+  for (const frames of css.matchAll(/@keyframes [a-z-]+\{(.*?)\}\}/g)) {
+    const props = [...frames[1].matchAll(/([a-z-]+):/g)].map((m) => m[1]).filter((p) => p !== '-webkit-transform');
+    assert.ok(props.every((p) => p === 'transform' || p === 'opacity'), frames[0].slice(0, 40));
+  }
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\*,\*::after\{transition:none!important;-webkit-animation:none!important;animation:none!important\}\}/);
+  // No CSS newer than the Tizen 6.5 browser: individual transform properties and `inset` are avoided.
+  assert.ok(!/[;{](translate|scale|rotate|inset):/.test(css));
+});
+test('an edge press nudges toward the key; every D-pad branch goes through moveFocus', () => {
+  assert.deepEqual(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].map(core.nudgeClass),
+    ['nudge-left', 'nudge-right', 'nudge-up', 'nudge-down']);
+  assert.equal(core.nudgeClass('Enter'), null); assert.equal(core.nudgeClass('__proto__'), null);
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  // Five call sites: picker, library, menu, arrange panel and the home grid.
+  assert.equal(app.split('moveFocus(').length - 1 - app.split('function moveFocus(').length + 1, 5);
+  assert.ok(!/\]\[[a-z]+\.col\]\.focus\(\)/.test(app), 'no grid branch focuses directly');
+  const css = fs.readFileSync(path.join(__dirname, '../launcher/style.css'), 'utf8');
+  for (const dir of ['left', 'right', 'up', 'down']) {
+    assert.ok(css.includes('.nudge-' + dir + '{animation:flat-' + dir) && css.includes('@keyframes lift-' + dir), dir);
+  }
+});
