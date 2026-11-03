@@ -130,5 +130,42 @@ body.picking .dock,body.picking .clockblock,body.picking .today,body.picking .ch
 .app-tile.nudge-up,.lib-tile.nudge-up,.thumb.nudge-up{animation:lift-up .3s ease}.app-tile.nudge-down,.lib-tile.nudge-down,.thumb.nudge-down{animation:lift-down .3s ease}
 @keyframes lift-left{40%{transform:translate(-10px,-12px) scale(1.08)}}@keyframes lift-right{40%{transform:translate(10px,-12px) scale(1.08)}}
 @keyframes lift-up{40%{transform:translateY(-20px) scale(1.08)}}@keyframes lift-down{40%{transform:translateY(-5px) scale(1.08)}}
+/* ---- Ambient: screensaver, night, contrast ---- */
+/* Adaptive contrast: a bright wallpaper behind the clock/greeting or the dock gets a deeper scrim, firmer text shadows
+   and darker glass, so white text stays readable. Classes come from ambient.js measuring the wallpaper once. */
+body.has-wallpaper.bright-top::before{background:linear-gradient(180deg,rgba(6,10,24,.74) 0%,rgba(6,10,24,.42) 26%,rgba(6,10,24,.14) 44%,rgba(6,10,24,.12) 58%,rgba(6,10,24,.7) 100%)}
+body.has-wallpaper.bright-bottom::before{background:linear-gradient(180deg,rgba(6,10,24,.55) 0%,rgba(6,10,24,.12) 34%,rgba(6,10,24,.2) 52%,rgba(6,10,24,.62) 72%,rgba(6,10,24,.86) 100%)}
+body.has-wallpaper.bright-top.bright-bottom::before{background:linear-gradient(180deg,rgba(6,10,24,.74) 0%,rgba(6,10,24,.42) 26%,rgba(6,10,24,.2) 46%,rgba(6,10,24,.62) 72%,rgba(6,10,24,.86) 100%)}
+body.bright-top #date,body.bright-top .events,body.bright-top .caption{text-shadow:0 1px 3px rgba(0,0,0,.6),0 2px 16px rgba(0,0,0,.6)}
+body.bright-top time{text-shadow:0 2px 6px rgba(0,0,0,.4),0 8px 40px rgba(0,0,0,.6)}
+body.bright-top .greeting,body.bright-top .pill{background:rgba(12,16,30,.36);border-color:rgba(255,255,255,.18)}
+body.bright-bottom .library-tile{background:rgba(12,16,30,.38)}
+body.bright-bottom .mode{color:rgba(255,255,255,.7);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+/* Night mode: one fixed warm veil, no page-wide filter (slow on TVs). Never over an HDMI picture. */
+.night-veil{position:fixed;left:0;top:0;right:0;bottom:0;z-index:15;pointer-events:none;background:rgba(20,10,0,.28);opacity:0;transition:opacity 2s ease}
+body.night-mode .night-veil{opacity:1}
+body.video .night-veil,body.video .saver{display:none}
+/* Screensaver: two stacked layers cross-fade; each slide makes one slow Ken Burns move. */
+.saver{position:fixed;left:0;top:0;right:0;bottom:0;z-index:20;overflow:hidden;pointer-events:none;background:#05070d;opacity:0;transition:opacity 1.2s ease}
+.saver.on{opacity:1}
+.saver-stage{position:absolute;left:0;top:0;right:0;bottom:0;transition:opacity 2s ease}
+.saver-slide{position:absolute;left:0;top:0;right:0;bottom:0;background-size:cover;background-position:center;opacity:0;transition:opacity 2.4s ease-in-out}
+.saver-slide.show{opacity:1}
+.kb-a{animation:kb-a 40s linear both}.kb-b{animation:kb-b 40s linear both}.kb-c{animation:kb-c 40s linear both}.kb-d{animation:kb-d 40s linear both}
+@keyframes kb-a{0%{transform:scale(1)}100%{transform:scale(1.08) translate(-2%,-1.5%)}}
+@keyframes kb-b{0%{transform:scale(1)}100%{transform:scale(1.08) translate(2%,1.5%)}}
+@keyframes kb-c{0%{transform:scale(1)}100%{transform:scale(1.08) translate(2%,-1.5%)}}
+@keyframes kb-d{0%{transform:scale(1)}100%{transform:scale(1.08) translate(-2%,1.5%)}}
+.saver-drift{position:absolute;left:-8%;top:-8%;right:-8%;bottom:-8%;animation:saver-drift 90s ease-in-out infinite alternate;background:
+  radial-gradient(ellipse 22% 14% at 50% 42%,#ffe9b0 0,#ffb55a66 40%,transparent 100%),
+  linear-gradient(180deg,#1a2342 0%,#3c4a78 26%,#c9855a 46%,#f1b36b 54%,#38466e 56%,#18213d 76%,#0a0f1e 100%)}
+@keyframes saver-drift{0%{transform:translate(-3%,-2%) scale(1)}100%{transform:translate(3%,2%) scale(1.06)}}
+.saver-clock{position:absolute;margin:0;font-size:60px;font-weight:300;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.88);text-shadow:0 1px 4px rgba(0,0,0,.4),0 2px 24px rgba(0,0,0,.55);transition:opacity .8s ease}
+.saver-clock.fade{opacity:0}
+.saver-clock.corner-0{left:96px;top:72px}.saver-clock.corner-1{right:96px;top:72px}.saver-clock.corner-2{right:96px;bottom:72px}.saver-clock.corner-3{left:96px;bottom:72px}
+body.night-mode .saver-stage{opacity:.5}
+body.night-mode .saver-clock{color:rgba(255,226,190,.55)}
+/* Reduced motion: no Ken Burns or drift (the global rule stops every animation); the fades stay, they do not move. */
+@media(prefers-reduced-motion:reduce){.saver{transition:opacity 1.2s ease!important}.saver-slide{transition:opacity 2.4s ease-in-out!important}.saver-clock{transition:opacity .8s ease!important}.night-veil{transition:opacity 2s ease!important}}
 @media(max-width:1500px){main{width:100%;height:100vh;min-height:620px;padding:32px 48px}time{font-size:112px;letter-spacing:-4px}#date{font-size:20px}.clockblock{left:48px;top:30px}.pill{right:48px;top:34px}.pill button{width:68px;height:56px}.caption{right:48px;top:112px;width:220px}.today{top:34px;width:620px;margin-left:-310px}.greeting{font-size:19px;padding:9px 20px}.events{font-size:16px;margin-top:12px}.menu{right:48px;top:136px;width:400px}.dock{left:48px;right:48px;bottom:56px;gap:16px}.app-tile{height:150px}.picker{left:48px;right:48px;bottom:40px}.thumb{height:104px}.symbol{font-size:44px}.input-tile .glyph{width:56px;height:56px}.input-tile .tile-label{font-size:15px;margin-top:10px}.input-tile .badge{top:10px;right:10px;font-size:12px;padding:4px 9px}.library{left:48px;right:48px;top:30px;bottom:30px}.library-grid{grid-auto-rows:112px;gap:14px}.lib-tile .symbol{font-size:30px}.lib-name{font-size:13px;margin-top:8px}.lib-tile .icon{width:52px;height:52px}.library-tile .glyph{width:46px;height:46px}}
 @media(prefers-reduced-motion:reduce){*,*::after{transition:none!important;-webkit-animation:none!important;animation:none!important}}

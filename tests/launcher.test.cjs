@@ -160,7 +160,7 @@ test('input tiles read the TV sources again before switching and Back returns fo
   assert.ok(app.includes('core.dockInputs(config.inputs, null)'));
   assert.match(app, /function openInputTile\(tile, button\) \{\s*readSources\(function \(value\) \{\s*refreshInputs\(value\);\s*if \(tile\.choice\) \{ selectSource\(tile\.choice, button\);/);
   assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-input'\);/);
-  assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\); \}/);
+  assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\);/);
   assert.ok(!app.includes('innerHTML'));
 });
 

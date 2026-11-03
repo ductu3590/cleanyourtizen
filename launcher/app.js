@@ -17,6 +17,8 @@
   var dockList = core.dockApps(config.apps || [], storedDock);
   // Dock tiles: those apps plus inputs pinned with `dock: true`, in the order saved on this TV.
   var tiles = core.orderApps(dockList.concat(core.dockInputs(config.inputs, null)), saved);
+  // Screensaver, night mode and wallpaper contrast. It never touches power, standby or Art Mode.
+  var ambient = window.CytAmbient.init({config: config, isVideo: function () { return videoOn; }, announce: announce});
 
   function announce(text) {
     message.textContent = text; message.hidden = false;
@@ -167,6 +169,9 @@
       });
       if ((config.wallpapers || []).length) {
         row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
+      }
+      if (ambient.nightAllowed()) {
+        var nightRow = row('Chế độ đêm', ambient.nightLabel(), function () { nightRow.value.textContent = ambient.toggleNight(); });
       }
       row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
       row('Samsung Home', '↗', returnHome);
@@ -420,6 +425,7 @@
   document.addEventListener('keydown', function (event) {
     var key = event.key;
     clock(); wallpaper(); // Catch a missed resume event: the TV may wake with a stale date.
+    if (ambient.onKey(event)) { event.preventDefault(); return; } // the key only woke the screensaver
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
@@ -474,6 +480,7 @@
   });
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {
+    ambient.visible(!document.hidden);
     core.tellService(tv, config.serviceId, document.hidden ? 'ui-hidden' : 'ui-visible', function () {});
     if (document.hidden) { clearInterval(clockTimer); clockTimer = null; }
     else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
@@ -484,6 +491,7 @@
     shownWallpaper = url;
     document.body.style.backgroundImage = 'url("' + url + '")';
     document.body.classList.add('has-wallpaper');
+    ambient.wallpaperChanged(url);
   }
   function wallpaper() {
     if (picking) return;
@@ -524,7 +532,7 @@
     picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
     (focusTarget || grid.firstChild).focus();
   }
-  function tick() { clock(); readWifi(); wallpaper(); readInputs(); }
+  function tick() { clock(); readWifi(); wallpaper(); readInputs(); ambient.tick(new Date()); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
