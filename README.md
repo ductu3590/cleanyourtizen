@@ -20,6 +20,8 @@ Art Mode stay untouched.
 - A quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
 - **Input switching** with the device names your TV reports (for example a game console on HDMI 4), and optional
   dock tiles for inputs such as a PlayStation 4, with a quiet dot that shows whether the device has a signal.
+- An **app library** with every app the TV lists, opened from the last tile in the row. **Sửa dock** pins or unpins apps
+  on the TV itself, without rebuilding; the choice is saved on that TV.
 - **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
 - **Daily wallpaper** from your own images, with a quick picker that previews each one live.
 - Optional background service that brings the launcher back when Home is pressed, while leaving Art Mode, standby and running apps alone.
@@ -49,7 +51,7 @@ Not affiliated with Samsung or Apple. App names are their owners' trademarks; ti
 | Preview selected app removal | Offline plan; no default deletion set |
 | Uninstall reviewed user-facing packages | Explicit plan hash, data-loss acknowledgement, per-package verification |
 | Restore removed app data | **Not possible from an inventory.** Manual store reinstall only |
-| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, greeting, lunar date and countdown, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, Samsung Home escape |
+| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, greeting, lunar date and countdown, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, app library with on-TV pinning (not yet verified on the TV), Samsung Home escape |
 | Signed launcher installation | Requires your own Samsung certificates and signed WGT |
 | Replace physical Home / Power / brand hotkeys | **Not possible for a normal app.** They are absent from the TV's supported keys; see [the device profile](profiles/qa55ls03b.json) |
 | Return to launcher when Home covers it | Opt-in background web service (`service.mode: guard`); see below |

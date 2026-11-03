@@ -23,8 +23,9 @@
     });
     return result;
   }
+  var APP_ID = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,159}$/;
   function launch(api, id, success, failure) {
-    if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,159}$/.test(id || '')) { failure('Ứng dụng không hợp lệ.'); return; }
+    if (!APP_ID.test(id || '')) { failure('Ứng dụng không hợp lệ.'); return; }
     if (!api || !api.application) { failure('Bản xem trước · ' + id); return; }
     try {
       api.application.launch(id, success, function () { failure('Không mở được ứng dụng. Bạn vẫn có thể quay về Samsung Home.'); });
@@ -52,8 +53,8 @@
     if (typeof item.number !== 'number' || item.number % 1 !== 0 || item.number < 1 || item.number > 99) return null;
     return item.type + ':' + item.number;
   }
-  function cleanName(value) {
-    return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, 32) : '';
+  function cleanName(value, max) {
+    return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max || 32) : '';
   }
   // Inputs the owner pinned to the dock with `dock: true`. Name: owner label, then the TV's name, then "HDMI 4".
   // `connected` is null until the TV reports the source; `choice` carries the TV's own source object for setSource.
@@ -80,6 +81,43 @@
   // One calm row: five columns by default, widening to seven before a second row starts.
   function dockColumns(count) {
     return Math.max(5, Math.min(7, typeof count === 'number' ? Math.floor(count) : 0));
+  }
+  // Installed apps for the library: shown in the TV's own app list, valid IDs, never the launcher itself or
+  // the excluded IDs (Samsung Home), sorted by Vietnamese name. Icons are local file paths only.
+  var ICON = /^(file:\/\/)?\/[A-Za-z0-9_\/.-]{1,200}\.(png|jpe?g|webp)$/i;
+  function libraryApps(list, exclude) {
+    var out = [], seen = Object.create(null), skip = exclude || {};
+    var ids = Array.isArray(skip.ids) ? skip.ids : [];
+    (Array.isArray(list) ? list : []).forEach(function (info) {
+      if (!info || typeof info.id !== 'string' || !APP_ID.test(info.id) || info.show === false || seen[info.id]) return;
+      if (skip.package && info.id.split('.')[0] === skip.package) return;
+      if (ids.indexOf(info.id) >= 0) return;
+      seen[info.id] = true;
+      var icon = typeof info.iconPath === 'string' && ICON.test(info.iconPath) && info.iconPath.indexOf('..') < 0 ? info.iconPath : null;
+      out.push({id: info.id, name: cleanName(info.name, 40) || info.id, icon: icon});
+    });
+    return out.sort(function (a, b) { return a.name.localeCompare(b.name, 'vi', {sensitivity: 'base'}); });
+  }
+  var DOCK_MAX = 12;
+  // The dock's apps: the list saved on this TV when it is a valid array (even empty), else the built-in defaults.
+  function dockApps(defaults, stored) {
+    if (!Array.isArray(stored)) return Array.isArray(defaults) ? defaults : [];
+    var out = [], seen = Object.create(null);
+    stored.forEach(function (app) {
+      if (!app || typeof app.id !== 'string' || !APP_ID.test(app.id) || seen[app.id] || out.length >= DOCK_MAX) return;
+      seen[app.id] = true;
+      out.push({id: app.id, name: cleanName(app.name, 40) || app.id});
+    });
+    return out;
+  }
+  // Pin or unpin one app; a full dock refuses new pins instead of dropping one silently.
+  function togglePin(list, app) {
+    var current = Array.isArray(list) ? list : [];
+    if (current.some(function (item) { return item.id === app.id; })) {
+      return {list: current.filter(function (item) { return item.id !== app.id; }), pinned: false, full: false};
+    }
+    if (current.length >= DOCK_MAX) return {list: current, pinned: false, full: true};
+    return {list: current.concat([{id: app.id, name: app.name}]), pinned: true, full: false};
   }
   function wifiInfo(value) {
     var on = !!value && value.status === 'ON' && typeof value.ssid === 'string' && value.ssid !== '';
@@ -121,5 +159,6 @@
     } catch (error) { finish(); }
   }
   return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
-    dockInputs: dockInputs, deviceStyle: deviceStyle, dockColumns: dockColumns, wifiInfo: wifiInfo, step: step, adjustVolume: adjustVolume, tellService: tellService};
+    dockInputs: dockInputs, deviceStyle: deviceStyle, dockColumns: dockColumns, wifiInfo: wifiInfo,
+    libraryApps: libraryApps, dockApps: dockApps, togglePin: togglePin, DOCK_MAX: DOCK_MAX, step: step, adjustVolume: adjustVolume, tellService: tellService};
 }));

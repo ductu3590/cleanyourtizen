@@ -17,6 +17,8 @@
 
 - Đồng hồ và ngày lớn, lời chào theo buổi, **ngày âm lịch** và một dòng **đếm ngược** 2-3 ngày lễ hoặc ngày riêng của gia đình sắp tới.
 - Thanh nhanh **Nguồn vào**, **Wi-Fi**, **Cài đặt**, và hàng ứng dụng yêu thích.
+- **Thư viện ứng dụng**: ô cuối hàng mở danh sách mọi ứng dụng TV đang có. Nút **Sửa dock** ghim hoặc bỏ ghim ngay trên TV,
+  không cần build lại; lựa chọn được lưu trên TV đó.
 - **Chuyển nguồn vào** với đúng tên thiết bị mà TV báo (ví dụ máy chơi game ở HDMI 4), và có thể đặt thiết bị như
   PlayStation 4 thành **một ô trong hàng ứng dụng**, có chấm nhỏ báo thiết bị đang có tín hiệu.
 - **Wi-Fi** (tên mạng, tín hiệu), **âm lượng và tắt tiếng**, màn hình sắp xếp ứng dụng.

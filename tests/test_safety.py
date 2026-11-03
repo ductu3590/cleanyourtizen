@@ -164,7 +164,8 @@ class PlanTests(unittest.TestCase):
         xml = ET.fromstring(widget_manifest(config))
         names = sorted(item.get('name').rsplit('/', 1)[1] for item in xml.findall('{http://tizen.org/ns/widgets}privilege'))
         # internet: the guard service reads the TV's own REST API on 127.0.0.1:8001.
-        self.assertEqual(names, ['application.launch', 'internet', 'network.get', 'tv.audiocontrol', 'tv.inputdevice', 'tv.window'])
+        # application.info: the app library lists installed apps (read-only).
+        self.assertEqual(names, ['application.info', 'application.launch', 'internet', 'network.get', 'tv.audiocontrol', 'tv.inputdevice', 'tv.window'])
 
     def test_unknown_stock_home_uses_exit_instead_of_guessed_id(self):
         value = snap()

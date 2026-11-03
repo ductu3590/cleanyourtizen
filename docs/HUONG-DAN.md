@@ -195,6 +195,11 @@ Nên bật chế độ **mở lại ứng dụng cuối cùng khi bật TV** (*A
   - **Wi-Fi:** tên mạng và độ mạnh tín hiệu.
   - **Cài đặt:** âm lượng (mũi tên trái/phải), tắt tiếng, hình nền, sắp xếp ứng dụng, Samsung Home.
 - **Hàng ứng dụng bên dưới:** OK để mở. Ô thiết bị HDMI (nếu bật `dock`) chuyển sang nguồn đó; Back quay lại ô.
+- **Ô Ứng dụng (cuối hàng):** mở danh sách mọi ứng dụng TV đang có, xếp theo tên. OK để mở. Bấm **Sửa dock** để ghim:
+  OK ghim hoặc bỏ ghim (dấu ✓ = đang ở màn hình chính, tối đa 12 ứng dụng), Back thoát chế độ ghim, Back lần nữa đóng thư viện.
+  Danh sách `--apps` khi chạy `launcher-config` chỉ là bộ ban đầu; khi đã ghim trên TV thì TV dùng danh sách của chính nó.
+  Ứng dụng hệ thống ẩn, chính launcher và Samsung Home không xuất hiện (Samsung Home vẫn ở trong Cài đặt).
+  Nếu TV không cho đọc danh sách, thư viện chỉ hiện các ứng dụng đang có trên màn hình chính.
 - **Phía trên:** lời chào, ngày âm lịch và đếm ngược ngày lễ.
 - **Back** khi không mở menu nào: quay về Samsung Home (service nền tạm nghỉ 10 phút).
 

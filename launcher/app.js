@@ -11,8 +11,12 @@
   var videoReturn = null, preference = 'auto';
   try { preference = localStorage.getItem('cyt-wallpaper') || 'auto'; } catch (error) { preference = 'auto'; }
   try { saved = JSON.parse(localStorage.getItem('cyt-order') || '[]'); } catch (error) { saved = []; }
-  // Dock tiles: app shortcuts plus inputs pinned with `dock: true`, in the order saved on this TV.
-  var tiles = core.orderApps((config.apps || []).concat(core.dockInputs(config.inputs, null)), saved);
+  // Dock apps: the set pinned from the library on this TV, else the built-in shortcuts.
+  var storedDock = null;
+  try { storedDock = JSON.parse(localStorage.getItem('cyt-dock-apps') || 'null'); } catch (error) { storedDock = null; }
+  var dockList = core.dockApps(config.apps || [], storedDock);
+  // Dock tiles: those apps plus inputs pinned with `dock: true`, in the order saved on this TV.
+  var tiles = core.orderApps(dockList.concat(core.dockInputs(config.inputs, null)), saved);
 
   function announce(text) {
     message.textContent = text; message.hidden = false;
@@ -194,7 +198,8 @@
   var GLYPHS = {
     console: ['M7 8h10a4 4 0 0 1 3.9 3.1l1 4.6a2.6 2.6 0 0 1-4.5 2.2L15.5 16h-7l-1.9 1.9a2.6 2.6 0 0 1-4.5-2.2l1-4.6A4 4 0 0 1 7 8z',
       'M8 10.5v3M6.5 12h3', 'M15.5 11h.01M17.5 13h.01'],
-    device: ['M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5']
+    device: ['M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5'],
+    library: ['M4.5 4.5h5.5v5.5H4.5z', 'M14 4.5h5.5v5.5H14z', 'M4.5 14h5.5v5.5H4.5z', 'M14 14h5.5v5.5H14z']
   };
   function glyph(kind) {
     var icon = document.createElementNS(SVG, 'svg');
@@ -244,7 +249,7 @@
   }
   function render() {
     dock.textContent = '';
-    dock.setAttribute('data-cols', String(core.dockColumns(tiles.length)));
+    dock.setAttribute('data-cols', String(core.dockColumns(tiles.length + 1)));
     tiles.forEach(function (app) {
       if (app.kind === 'input') {
         var source = document.createElement('button');
@@ -262,8 +267,110 @@
       button.addEventListener('click', function () { openShortcut(app.id); });
       dock.appendChild(button);
     });
-    if (!tiles.length) announce('Chưa có ứng dụng được chọn. Nút Cài đặt → Samsung Home luôn sẵn sàng.');
+    // The library tile always closes the row: it is how apps are added to the dock on the TV.
+    var all = document.createElement('button'); all.id = 'btn-library'; all.className = 'app-tile library-tile';
+    all.setAttribute('aria-label', 'Tất cả ứng dụng');
+    var allLabel = document.createElement('span'); allLabel.className = 'tile-label'; allLabel.textContent = 'Ứng dụng';
+    all.appendChild(glyph('library')); all.appendChild(allLabel);
+    all.addEventListener('click', openLibrary);
+    dock.appendChild(all);
+    if (!tiles.length) announce('Dock chưa có ứng dụng. Chọn ô Ứng dụng để ghim.');
   }
+
+  // ---- App library ----
+  var library = $('library'), libraryGrid = $('library-grid'), libraryOpen = false, editing = false;
+  var LIBRARY_COLS = 6;
+  function saveDock() {
+    try { localStorage.setItem('cyt-dock-apps', JSON.stringify(dockList)); }
+    catch (error) { announce('Không lưu được dock. Thay đổi chỉ có hiệu lực trong phiên này.'); }
+  }
+  // Keep the saved order and the input tiles; newly pinned apps join at the end.
+  function rebuildDock() {
+    var order = tiles.map(function (tile) { return tile.id; });
+    var inputs = tiles.filter(function (tile) { return tile.kind === 'input'; });
+    tiles = core.orderApps(dockList.concat(inputs), order);
+    // Save the order too, so a restart shows the new pin exactly where it appeared.
+    try { localStorage.setItem('cyt-order', JSON.stringify(tiles.map(function (tile) { return tile.id; }))); }
+    catch (error) { /* saveDock already told the viewer */ }
+    render();
+  }
+  function isPinned(id) { return dockList.some(function (app) { return app.id === id; }); }
+  function libraryHint() {
+    $('library-edit').textContent = editing ? 'Xong' : 'Sửa dock';
+    $('library-hint').textContent = editing ? 'OK để ghim hoặc bỏ ghim khỏi dock  ·  Back khi xong'
+      : 'OK để mở  ·  Sửa dock để chọn ứng dụng cho màn hình chính';
+    library.classList.toggle('editing', editing);
+  }
+  function drawLibraryTile(app, button) {
+    var on = isPinned(app.id);
+    button.classList.toggle('pinned', on);
+    button.setAttribute('aria-label', app.name + (on ? ', đã ghim vào dock' : ''));
+    button.querySelector('.pin').textContent = on ? '✓' : '+';
+  }
+  function libraryTile(app) {
+    var identity = brand(app.name), button = document.createElement('button');
+    button.className = 'lib-tile ' + identity[0];
+    if (app.icon) {
+      // An icon the TV refuses to show (CSP, missing file) falls back to the typographic tile.
+      var icon = document.createElement('img'); icon.className = 'icon'; icon.alt = '';
+      icon.addEventListener('error', function () {
+        if (icon.parentNode) icon.parentNode.removeChild(icon);
+        button.classList.remove('has-icon');
+      });
+      button.classList.add('has-icon'); button.appendChild(icon); icon.src = app.icon;
+    }
+    var symbol = document.createElement('span'); symbol.className = 'symbol'; symbol.textContent = identity[1];
+    var name = document.createElement('span'); name.className = 'lib-name'; name.textContent = app.name;
+    var pin = document.createElement('span'); pin.className = 'pin'; pin.setAttribute('aria-hidden', 'true');
+    button.appendChild(symbol); button.appendChild(name); button.appendChild(pin);
+    button.addEventListener('click', function () { activateLibrary(app, button); });
+    button.addEventListener('focus', function () { try { button.scrollIntoView({block: 'nearest'}); } catch (error) { /* old engines */ } });
+    drawLibraryTile(app, button);
+    return button;
+  }
+  function activateLibrary(app, button) {
+    if (!editing) { closeLibrary(); openShortcut(app.id); return; }
+    var result = core.togglePin(dockList, app);
+    if (result.full) { announce('Dock đã đủ ' + core.DOCK_MAX + ' ứng dụng. Bỏ ghim một ứng dụng trước.'); return; }
+    dockList = result.list; saveDock(); rebuildDock(); drawLibraryTile(app, button);
+  }
+  function fillLibrary(apps) {
+    if (!libraryOpen) return;
+    libraryGrid.textContent = '';
+    $('library-count').textContent = apps.length ? String(apps.length) : '';
+    if (!apps.length) {
+      var empty = document.createElement('p'); empty.className = 'library-empty';
+      empty.textContent = 'TV chưa trả về ứng dụng nào.'; libraryGrid.appendChild(empty); return;
+    }
+    apps.forEach(function (app) { libraryGrid.appendChild(libraryTile(app)); });
+    libraryGrid.firstChild.focus();
+  }
+  // Installed apps from the TV; the launcher itself and Samsung Home stay out (Samsung Home lives in Settings).
+  function readLibrary(done) {
+    var exclude = {package: config.package, ids: [config.samsungHome, config.appId]};
+    if (!tv || !tv.application || !tv.application.getAppsInfo) { done(core.libraryApps(config.previewLibrary || config.apps, exclude)); return; }
+    function fallback() {
+      announce('TV không cho xem danh sách ứng dụng. Đang hiện các ứng dụng trên dock.');
+      done(core.libraryApps(dockList, exclude));
+    }
+    try { tv.application.getAppsInfo(function (list) { done(core.libraryApps(list, exclude)); }, fallback); }
+    catch (error) { fallback(); }
+  }
+  function openLibrary() {
+    editing = false; libraryHint();
+    libraryOpen = true; document.body.classList.add('library-open'); library.hidden = false;
+    libraryGrid.textContent = ''; $('library-count').textContent = ''; $('library-edit').focus();
+    readLibrary(fillLibrary);
+  }
+  function closeLibrary() {
+    libraryOpen = false; editing = false; library.hidden = true; document.body.classList.remove('library-open');
+    var tile = $('btn-library'); if (tile) tile.focus();
+  }
+  function libraryBack() {
+    if (editing) { editing = false; libraryHint(); return; }
+    closeLibrary();
+  }
+  $('library-edit').addEventListener('click', function () { editing = !editing; libraryHint(); });
   function closePanel() { panel.hidden = true; home.hidden = false; $('btn-settings').focus(); }
   function openPanel() {
     var target = $('arrange'); target.textContent = '';
@@ -301,6 +408,7 @@
       event.preventDefault();
       if (videoOn) leaveVideo();
       else if (picking) pickerBack();
+      else if (libraryOpen) libraryBack();
       else if (!panel.hidden) closePanel();
       else if (openMenu) closeMenu();
       else returnHome();
@@ -318,6 +426,14 @@
       var here = {row: 0, col: 0};
       lines.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) here = {row: rowIndex, col: col}; });
       var moved = core.nextFocus(lines, here, key); lines[moved.row][moved.col].focus();
+      return;
+    }
+    if (libraryOpen) {
+      var cells = Array.prototype.slice.call(libraryGrid.querySelectorAll('.lib-tile')), table = [[$('library-edit')]];
+      for (var cell = 0; cell < cells.length; cell += LIBRARY_COLS) table.push(cells.slice(cell, cell + LIBRARY_COLS));
+      var spot = {row: 0, col: 0};
+      table.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) spot = {row: rowIndex, col: col}; });
+      var go = core.nextFocus(table, spot, key); table[go.row][go.col].focus();
       return;
     }
     if (openMenu) {

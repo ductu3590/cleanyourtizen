@@ -119,6 +119,8 @@ def widget_manifest(config):
  <feature name="http://tizen.org/feature/screen.size.all"/>
  <feature name="http://tizen.org/feature/web.service"/>
  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+ <!-- application.info: the app library reads the installed app list with getAppsInfo (read-only). -->
+ <tizen:privilege name="http://tizen.org/privilege/application.info"/>
  <!-- internet: the service reads the TV's own REST API on 127.0.0.1:8001 (power state, visibility). -->
  <tizen:privilege name="http://tizen.org/privilege/internet"/>
  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>

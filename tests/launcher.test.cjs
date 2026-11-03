@@ -428,3 +428,64 @@ test('greeting follows the time of day and the configured family name', () => {
   assert.equal(calendar.greeting(new Date(2026,9,27,20,7)).text,'Chào buổi tối');
   assert.equal(calendar.greeting(new Date(2026,9,27,23)).period,'night');
 });
+test('library lists visible installed apps by Vietnamese name, without the launcher or Samsung Home', () => {
+  const list = [
+    {id: 'ZTpEFWgfa9.FPTPlay', name: 'FPT Play', show: true}, {id: 'b.Dan', name: 'Đàn'}, {id: 'a.An', name: 'an'},
+    {id: 'sys.Hidden', name: 'Hidden', show: false}, {id: 'CyTizen001.Home', name: 'Launcher'},
+    {id: 'CyTizen001.Service', name: 'Service'}, {id: 'com.samsung.tv.csfs', name: 'Samsung Home'},
+    {id: 'a.An', name: 'Duplicate'}, {id: 'bad;id', name: 'Bad'}, {id: 7}, null, {name: 'No id'}];
+  const apps = core.libraryApps(list, {package: 'CyTizen001', ids: ['com.samsung.tv.csfs', null]});
+  assert.deepEqual(apps.map((app) => app.id), ['a.An', 'b.Dan', 'ZTpEFWgfa9.FPTPlay']);
+  assert.deepEqual(core.libraryApps(undefined, null), []);
+  assert.deepEqual(core.libraryApps([{id: 'x.App', name: '  '}], {}), [{id: 'x.App', name: 'x.App', icon: null}]);
+  assert.equal(core.libraryApps([{id: 'x.App', name: 'n'.repeat(90)}], {})[0].name.length, 40);
+});
+test('library icons are local image paths only', () => {
+  const icon = (iconPath) => core.libraryApps([{id: 'x.App', name: 'X', iconPath}], {})[0].icon;
+  assert.equal(icon('/opt/usr/apps/x/shared/res/icon.png'), '/opt/usr/apps/x/shared/res/icon.png');
+  assert.equal(icon('file:///opt/usr/globalapps/x/icon.PNG'), 'file:///opt/usr/globalapps/x/icon.PNG');
+  for (const bad of ['http://evil/x.png', 'javascript:alert(1)//.png', '/opt/../etc/x.png', '/a b.png', '/x.png")', '/x.svg', 'icon.png', 5, null]) {
+    assert.equal(icon(bad), null, String(bad));
+  }
+});
+test('dock apps come from the TV-saved list when valid, else from the build defaults', () => {
+  const defaults = [{id: 'a.App', name: 'A'}];
+  assert.equal(core.dockApps(defaults, null), defaults);
+  assert.equal(core.dockApps(defaults, {}), defaults);
+  assert.deepEqual(core.dockApps(defaults, []), []);
+  assert.deepEqual(core.dockApps(defaults, [{id: 'b.App', name: ' B '}, {id: 'b.App', name: 'again'}, {id: 'bad;x'}, null, {id: 'c.App'}]),
+    [{id: 'b.App', name: 'B'}, {id: 'c.App', name: 'c.App'}]);
+  const many = Array.from({length: 20}, (_, n) => ({id: 'p.App' + n, name: 'P' + n}));
+  assert.equal(core.dockApps(defaults, many).length, core.DOCK_MAX);
+});
+test('pinning adds at the end, unpinning removes, and a full dock refuses', () => {
+  let state = core.togglePin([{id: 'a.App', name: 'A'}], {id: 'b.App', name: 'B', icon: '/x.png'});
+  assert.deepEqual(state, {list: [{id: 'a.App', name: 'A'}, {id: 'b.App', name: 'B'}], pinned: true, full: false});
+  state = core.togglePin(state.list, {id: 'a.App', name: 'A'});
+  assert.deepEqual(state.list, [{id: 'b.App', name: 'B'}]); assert.equal(state.pinned, false);
+  const full = Array.from({length: core.DOCK_MAX}, (_, n) => ({id: 'p.App' + n, name: 'P' + n}));
+  const refused = core.togglePin(full, {id: 'new.App', name: 'New'});
+  assert.equal(refused.full, true); assert.equal(refused.list, full);
+  assert.equal(core.togglePin(full, {id: 'p.App0', name: 'P0'}).list.length, core.DOCK_MAX - 1);
+  assert.equal(core.togglePin(undefined, {id: 'a.App', name: 'A'}).list.length, 1);
+});
+test('library opens apps through the guard-aware path, falls back when the TV refuses, and Back leaves edit mode first', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '../launcher/index.html'), 'utf8');
+  assert.ok(html.includes('id="library"') && html.includes('id="library-grid"') && html.includes('id="library-edit"'));
+  assert.match(app, /if \(!editing\) \{ closeLibrary\(\); openShortcut\(app\.id\); return; \}/);
+  assert.match(app, /tv\.application\.getAppsInfo\(function \(list\) \{ done\(core\.libraryApps\(list, exclude\)\); \}, fallback\)/);
+  assert.match(app, /ids: \[config\.samsungHome, config\.appId\]/);
+  assert.match(app, /function libraryBack\(\) \{\s*if \(editing\) \{ editing = false;/);
+  assert.ok(app.indexOf('else if (picking) pickerBack()') < app.indexOf('else if (libraryOpen) libraryBack()'));
+  assert.ok(app.indexOf('else if (libraryOpen) libraryBack()') < app.indexOf('else if (!panel.hidden) closePanel()'));
+  assert.match(app, /localStorage\.setItem\('cyt-dock-apps', JSON\.stringify\(dockList\)\)/);
+  // A pin also saves the order, so the tile keeps its place after a restart.
+  assert.match(app, /tiles = core\.orderApps\(dockList\.concat\(inputs\), order\);\s*\/\/[^\n]*\n\s*try \{ localStorage\.setItem\('cyt-order'/);
+  assert.ok(!app.includes('innerHTML'));
+  assert.ok(!/style\.backgroundImage = 'url\("' \+ app\.icon/.test(app)); // icons go through img.src, never CSS
+});
+test('the preview-only library list is not shipped: build writes its own config.js', () => {
+  const cli = fs.readFileSync(path.join(__dirname, '../cyt/cli.py'), 'utf8');
+  assert.match(cli, /\(destination \/ 'config\.js'\)\.write_text\('window\.CYT_CONFIG = '/);
+});
