@@ -258,6 +258,9 @@
     if (value.indexOf('nuvio') >= 0) return ['nuvio', 'N', 'NUVIO'];
     if (value.indexOf('youtube') >= 0) return ['youtube', '▶', 'YouTube'];
     if (value.indexOf('netflix') >= 0) return ['netflix', 'N', 'NETFLIX'];
+    if (value.indexOf('galaxy') >= 0 || value.indexOf('fim+') >= 0) return ['galaxyplay', 'G', 'GALAXY PLAY'];
+    if (value.indexOf('tv360') >= 0 || value.indexOf('tv 360') >= 0) return ['tv360', '360', 'TV360'];
+    if (value.indexOf('multiscreen') >= 0 || value.indexOf('mutilscreen') >= 0 || value.indexOf('multi screen') >= 0 || value.indexOf('app launcher') >= 0) return ['multiscreen', '⧉', 'MULTISCREEN'];
     return ['generic', name.substring(0, 2).toUpperCase(), name];
   }
   var SVG = 'http://www.w3.org/2000/svg';
@@ -316,8 +319,9 @@
   }
   function render() {
     dock.textContent = '';
-    dock.setAttribute('data-cols', String(core.dockColumns(tiles.length + 1)));
-    tiles.forEach(function (app) {
+    var dockTiles = tiles.slice(0, 6);
+    dock.setAttribute('data-cols', String(core.dockColumns(dockTiles.length)));
+    dockTiles.forEach(function (app) {
       if (app.kind === 'input') {
         var source = document.createElement('button');
         source.setAttribute('data-id', app.id); drawInput(app, source);
@@ -336,13 +340,14 @@
       button.addEventListener('click', function () { openShortcut(app.id); });
       dock.appendChild(button);
     });
-    // The library tile always closes the row: it is how apps are added to the dock on the TV.
-    var all = document.createElement('button'); all.id = 'btn-library'; all.className = 'app-tile library-tile';
-    all.setAttribute('aria-label', 'Tất cả ứng dụng');
-    var allLabel = document.createElement('span'); allLabel.className = 'tile-label'; allLabel.textContent = 'Ứng dụng';
-    all.appendChild(glyph('library')); all.appendChild(allLabel);
-    all.addEventListener('click', openLibrary);
-    dock.appendChild(all);
+    if (dockTiles.length < 6) {
+      var all = document.createElement('button'); all.id = 'btn-library'; all.className = 'app-tile library-tile';
+      all.setAttribute('aria-label', 'Tất cả ứng dụng');
+      var allLabel = document.createElement('span'); allLabel.className = 'tile-label'; allLabel.textContent = 'Ứng dụng';
+      all.appendChild(glyph('library')); all.appendChild(allLabel);
+      all.addEventListener('click', openLibrary);
+      dock.appendChild(all);
+    }
     if (!tiles.length) announce('Dock chưa có ứng dụng. Chọn ô Ứng dụng để ghim.');
   }
 
@@ -425,21 +430,49 @@
     try { tv.application.getAppsInfo(function (list) { done(core.libraryApps(list, exclude)); }, fallback); }
     catch (error) { fallback(); }
   }
+  var lastDockIndex = 0;
+  function fillSelectedApps() {
+    libraryGrid.textContent = '';
+    $('library-count').textContent = tiles.length ? String(tiles.length) : '';
+    $('library-hint').textContent = 'OK để mở  ·  Sửa dock để chọn ứng dụng cho màn hình chính  ·  Back để quay lại';
+    tiles.forEach(function (app) {
+      if (app.kind === 'input') {
+        var source = document.createElement('button');
+        source.className = 'lib-tile input-tile ' + core.deviceStyle(app.name);
+        source.setAttribute('data-id', app.id);
+        var label = document.createElement('span'); label.className = 'lib-name'; label.textContent = app.name;
+        source.appendChild(glyph('device')); source.appendChild(label);
+        source.addEventListener('click', function () { closeLibrary(); openInputTile(app, source); });
+        libraryGrid.appendChild(source);
+        return;
+      }
+      libraryGrid.appendChild(libraryTile(app));
+    });
+    if (libraryGrid.firstChild) libraryGrid.firstChild.focus();
+  }
   function openLibrary() {
     editing = false; libraryHint();
     libraryOpen = true; document.body.classList.add('library-open'); library.hidden = false;
-    libraryGrid.textContent = ''; $('library-count').textContent = ''; $('library-edit').focus();
-    readLibrary(fillLibrary);
+    fillSelectedApps();
   }
   function closeLibrary() {
     libraryOpen = false; editing = false; library.hidden = true; document.body.classList.remove('library-open');
-    var tile = $('btn-library'); if (tile) tile.focus();
+    var target = (dock.children && dock.children[lastDockIndex]) || (dock.children && dock.children[0]) || $('btn-library');
+    if (target) target.focus();
   }
   function libraryBack() {
-    if (editing) { editing = false; libraryHint(); return; }
+    if (editing) { editing = false; libraryHint(); fillSelectedApps(); return; }
     closeLibrary();
   }
-  $('library-edit').addEventListener('click', function () { editing = !editing; libraryHint(); });
+  $('library-edit').addEventListener('click', function () {
+    editing = !editing; libraryHint();
+    if (editing) {
+      libraryGrid.textContent = ''; $('library-count').textContent = '';
+      readLibrary(fillLibrary);
+    } else {
+      fillSelectedApps();
+    }
+  });
   function closePanel() { panel.hidden = true; home.hidden = false; centerButton.focus(); }
   function openPanel() {
     var target = $('arrange'); target.textContent = '';
@@ -518,6 +551,10 @@
       for (var cell = 0; cell < cells.length; cell += LIBRARY_COLS) table.push(cells.slice(cell, cell + LIBRARY_COLS));
       var spot = {row: 0, col: 0};
       table.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) spot = {row: rowIndex, col: col}; });
+      if (key === 'ArrowUp' && spot.row === 0) {
+        closeLibrary();
+        return;
+      }
       var go = core.nextFocus(table, spot, key); moveFocus(table[go.row][go.col], key);
       return;
     }
@@ -539,6 +576,11 @@
     }
     var grid = focusRows(), position = {row: 0, col: 0};
     grid.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) position = {row: rowIndex, col: col}; });
+    if (position.row > 0 && key === 'ArrowDown') {
+      lastDockIndex = position.col;
+      openLibrary();
+      return;
+    }
     var target = core.nextFocus(grid, position, key); moveFocus(grid[target.row][target.col], key);
   });
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.

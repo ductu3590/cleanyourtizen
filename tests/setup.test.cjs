@@ -99,6 +99,8 @@ test('setup shows once, only when storage works, and never when the build says s
   assert.equal(setup.shouldShow({}, fresh), true);
   assert.deepEqual(fresh.data, {}); // the probe is removed again
   assert.equal(setup.shouldShow({}, memory({'cyt-setup': '1'})), false);
+  assert.equal(setup.shouldShow({}, memory({'cyt-order': '["app1"]'})), false);
+  assert.equal(setup.shouldShow({}, memory({'cyt-wallpaper': 'wallpapers/1.jpg'})), false);
   assert.equal(setup.shouldShow({setup: false}, memory()), false);
   assert.equal(setup.shouldShow(undefined, memory()), true);
   assert.equal(setup.shouldShow({}, null), false);

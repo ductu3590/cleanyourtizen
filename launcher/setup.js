@@ -143,6 +143,12 @@
     try {
       var target = arguments.length > 1 ? store : storage();
       if (!target || target.getItem('cyt-setup') !== null) return false;
+      if (target.getItem('cyt-order') !== null || target.getItem('cyt-dock-apps') !== null ||
+          target.getItem('cyt-wallpaper') !== null || target.getItem('cyt-inputs') !== null ||
+          target.getItem('cyt-greeting') !== null || target.getItem('cyt-night') !== null) {
+        try { target.setItem('cyt-setup', 'migrated'); } catch (e) {}
+        return false;
+      }
       target.setItem('cyt-setup-probe', '1'); target.removeItem('cyt-setup-probe');
       return true;
     } catch (error) { return false; }
