@@ -16,7 +16,10 @@
 ## Có gì trong launcher
 
 - Đồng hồ và ngày lớn, lời chào theo buổi, **ngày âm lịch** và một dòng **đếm ngược** 2-3 ngày lễ hoặc ngày riêng của gia đình sắp tới.
-- Thanh nhanh **Nguồn vào**, **Wi-Fi**, **Cài đặt**, và hàng ứng dụng yêu thích.
+- Một nút **Điều khiển** duy nhất ở góc trên bên phải, kèm biểu tượng Wi-Fi nhỏ. Bấm OK, một bảng kính trượt vào với nguồn vào,
+  âm lượng và tắt tiếng, Wi-Fi, hình nền, chế độ đêm, sắp xếp ứng dụng, **Giới thiệu**, thiết lập và Samsung Home.
+- **Thiết lập lần đầu ngay trên TV:** vài bước bằng nút điều hướng để chọn ứng dụng cho hàng dưới, thiết bị HDMI nào hiện thành ô
+  và tên gia đình cho lời chào (không bắt buộc). Back để bỏ qua; chạy lại ở Điều khiển → Thiết lập lại; `"setup": false` để tắt.
 - **Thư viện ứng dụng**: ô cuối hàng mở danh sách mọi ứng dụng TV đang có. Nút **Sửa dock** ghim hoặc bỏ ghim ngay trên TV,
   không cần build lại; lựa chọn được lưu trên TV đó.
 - **Chuyển nguồn vào** với đúng tên thiết bị mà TV báo (ví dụ máy chơi game ở HDMI 4), và có thể đặt thiết bị như
@@ -24,6 +27,14 @@
 - **Wi-Fi** (tên mạng, tín hiệu), **âm lượng và tắt tiếng**, màn hình sắp xếp ứng dụng.
 - **Hiệu ứng focus** theo tinh thần tvOS: ô đang chọn nâng lên với bóng mềm và một vệt sáng lướt qua; bấm tới mép thì ô
   khẽ nghiêng về phía đó thay vì đứng im.
+- **Màn hình chờ** sau vài phút không bấm phím (`"screensaverMinutes": 5`, `0` để tắt): hình nền chuyển mờ dần với hiệu ứng
+  zoom chậm và đồng hồ nhỏ đổi góc. Bấm phím bất kỳ để thoát mà không kích hoạt gì. Không che nguồn HDMI; màn hình chờ và tự
+  tắt nguồn của TV vẫn hoạt động.
+- **Chế độ đêm** làm tối và ấm màn hình từ 22:00 đến 06:00 (`"night": {"from": 22, "to": 6}` hoặc `false`); Điều khiển → Chế độ
+  đêm chọn Tự động hoặc Tắt. **Tương phản thích ứng** phủ tối hơn sau chữ khi hình nền sáng.
+- **Thiết bị sẵn sàng:** khi thiết bị HDMI trên dock bắt đầu có tín hiệu, launcher báo "PlayStation 4 đã sẵn sàng" và, nếu remote
+  không được bấm, chuyển tới ô đó để chỉ cần OK là chơi. **Xem trước trực tiếp** (tuỳ chọn, `"preview": true` cho nguồn trên dock)
+  phát hình của thiết bị ngay trong ô; TV chuyển hẳn sang nguồn đó nên có cả âm thanh.
 - **Ảnh nền đổi mỗi ngày** từ ảnh của chính bạn, có bảng chọn nhanh xem trước từng ảnh.
 - **Service nền (tuỳ chọn)** mở lại launcher khi bấm Home, nhưng không chen vào Art Mode, chế độ chờ hay ứng dụng đang xem. Xem [hướng dẫn, mục 11](docs/HUONG-DAN.md).
 - Toàn bộ là HTML/CSS/JS chạy cục bộ, không gọi mạng, không tài khoản, không theo dõi.

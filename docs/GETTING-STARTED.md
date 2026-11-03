@@ -88,12 +88,12 @@ replaces the name the TV reports:
 ```
 
 The tile shows the device name, a small `HDMI 4` badge and a green dot while the device has a signal; it dims when there is none.
-OK switches to the input, Back returns to the tile. Move it in **Settings → Sắp xếp ứng dụng** like any app.
+OK switches to the input, Back returns to the tile. Move it in **Điều khiển → Sắp xếp ứng dụng** like any app.
 
 ## 8. Optional: daily wallpapers
 
 Put `jpg`/`png` files (1920x1080 recommended, at most 2.5 MB each, at most 60, simple file names) into a folder such as `.local/wallpapers`
-and pass `--wallpapers .local/wallpapers` when building. One wallpaper is used per day in file-name order. **Settings → Hình nền** previews
+and pass `--wallpapers .local/wallpapers` when building. One wallpaper is used per day in file-name order. **Điều khiển → Hình nền** previews
 each one, saves a fixed choice, or returns to **automatic daily**. Only use images you may use; the repository ships none.
 
 ## 9. Build, sign, install
@@ -152,7 +152,15 @@ Enable your TV's "resume last app on power on" setting (*Autorun Last App*), sin
 
 ![Home](images/launcher-home.png)
 
-- **Top-right pill:** input switching (OK switches, Back returns), Wi-Fi name and signal, settings (volume, mute, wallpaper, arrange apps, Samsung Home).
+- **First launch:** a short setup (Chào mừng → apps for the home row → HDMI devices → optional family name). Back on the first
+  step skips it. Run it again from **Điều khiển → Thiết lập lại**. The name field relies on the TV's on-screen keyboard (not yet
+  verified on a TV).
+- **Điều khiển** (top right): a panel slides in from the right with the inputs (OK switches, Back returns), volume (Left/Right),
+  mute, Wi-Fi, wallpaper, **Chế độ đêm** (Tự động/Tắt), arrange apps, **Giới thiệu** (launcher version, TV model and firmware,
+  Tizen version, resolution, dock size, service mode; read-only), Thiết lập lại and Samsung Home. Back closes it.
+- **Screensaver** after `screensaverMinutes` idle minutes (default 5, `0` off); any key only wakes it.
+- **HDMI tiles:** a note appears when a docked device starts sending a signal. With `"preview": true` on a docked input, a focused
+  tile shows the live picture after about a second (the TV switches source, so its sound plays); OK goes full screen.
 - **App row:** OK opens an app. **Back** with no menu open goes to Samsung Home (and pauses the service for 10 minutes).
 - **Ứng dụng** (last tile): every app the TV lists, sorted by name. OK opens one. **Sửa dock** turns on pinning: OK pins or
   unpins (✓ = on the home row, up to 12 apps), Back leaves pinning, Back again closes the library. The `--apps` list from

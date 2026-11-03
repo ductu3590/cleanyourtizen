@@ -104,10 +104,11 @@
       var s = options.state() || {};
       return {menu: !!s.menu, picking: !!s.picking, library: !!s.library, panel: !!s.panel, video: !!s.video, hidden: !!doc.hidden};
     }
+    function inputsNow() { return typeof options.inputs === 'function' ? options.inputs() : options.inputs; }
     function blocked(s) { return s.menu || s.picking || s.library || s.panel || s.video || s.hidden; }
     function stateFor(tile) {
       var s = current(), when = failed[tile.key];
-      s.enabled = previewEnabled(options.inputs, tile.key) && !(when && Date.now() - when < RETRY_MS);
+      s.enabled = previewEnabled(inputsNow(), tile.key) && !(when && Date.now() - when < RETRY_MS);
       return s;
     }
     function inputTiles() { return (options.tiles() || []).filter(isInput); }
@@ -179,7 +180,7 @@
     }
     function arm(tile, button) {
       clearTimeout(dwell); dwell = null;
-      if (!previewEnabled(options.inputs, tile.key)) return;
+      if (!previewEnabled(inputsNow(), tile.key)) return;
       dwell = setTimeout(function () { dwell = null; start(tile, button); }, DWELL_MS);
     }
     function focusedTile() {

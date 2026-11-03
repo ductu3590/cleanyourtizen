@@ -37,7 +37,7 @@ python -m cyt launcher-config --snapshot .local/before.json --apps APPID_1 APPID
 ```
 
 - `--apps`: các App ID theo thứ tự hiển thị. **5 ứng dụng là đẹp nhất** (một hàng). Từ 6 tới 10 sẽ thành hai hàng; nhiều hơn sẽ chật màn hình.
-  Thứ tự đổi lại được trên TV trong **Cài đặt → Sắp xếp ứng dụng**.
+  Thứ tự đổi lại được trên TV trong **Điều khiển → Sắp xếp ứng dụng**.
 - `--package`: nên đặt mã riêng gồm **đúng 10 chữ hoặc số**, ví dụ `NhaAnBinh1`.
   Mã mặc định `CyTizen001` chỉ dành cho thử nghiệm. Đổi mã sau này nghĩa là cài thành ứng dụng mới, mất thứ tự và hình nền đã chọn.
 - Sau đó thêm vào `.local/launcher.json` các mục tuỳ chọn: `inputs` (nguồn HDMI, bước 7), `greetingName`, `events` (bước 10),

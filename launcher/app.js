@@ -17,8 +17,10 @@
   var storedDock = null;
   try { storedDock = JSON.parse(localStorage.getItem('cyt-dock-apps') || 'null'); } catch (error) { storedDock = null; }
   var dockList = core.dockApps(config.apps || [], storedDock);
+  // First-run setup (setup.js): inputs chosen on this TV replace the build's list when they are valid.
+  var setup = window.CytSetup, inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
   // Dock tiles: those apps plus inputs pinned with `dock: true`, in the order saved on this TV.
-  var tiles = core.orderApps(dockList.concat(core.dockInputs(config.inputs, null)), saved);
+  var tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), saved);
   // Screensaver, night mode and wallpaper contrast. It never touches power, standby or Art Mode.
   var ambient = window.CytAmbient.init({config: config, isVideo: function () { return videoOn; }, announce: announce});
 
@@ -49,7 +51,7 @@
   function clock() {
     var now = new Date();
     $('time').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    var hello = calendar.greeting(now, config.greetingName);
+    var hello = calendar.greeting(now, setup.storedGreeting(config.greetingName));
     $('greeting').textContent = hello.text;
     document.querySelector('.today').classList.toggle('night', hello.period === 'evening' || hello.period === 'night');
     if (shownDay === now.toDateString()) return;
@@ -202,7 +204,7 @@
   // Every row of the control center, top to bottom. Add a row with row(label, value, onActivate, options) where it belongs.
   function buildControls(value) {
     heading('Nguồn vào');
-    buildInput(core.inputChoices(value, config.inputs));
+    buildInput(core.inputChoices(value, inputsConfig));
     divider();
     var current = volume();
     var volumeRow = row('Âm lượng', current === null ? 'Không điều khiển được' : '‹  ' + current + '  ›', null, {adjust: 'volume'});
@@ -224,6 +226,7 @@
     row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
     divider();
     row('Giới thiệu', '›', openAbout);
+    row('Thiết lập lại', '›', function () { setMenuOpen(null); openSetup(); });
     row('Samsung Home', '↗', returnHome);
   }
   // Giới thiệu: read-only facts. TV values come from systeminfo; version and service mode from the built page config.
@@ -291,7 +294,7 @@
   }
   // Refresh names and signal from the TV without rebuilding the dock, so focus stays where it is.
   function refreshInputs(value) {
-    core.dockInputs(config.inputs, value).forEach(function (fresh) {
+    core.dockInputs(inputsConfig, value).forEach(function (fresh) {
       var tile = tiles.filter(function (item) { return item.id === fresh.id; })[0];
       if (!tile) return;
       tile.name = fresh.name; tile.connected = fresh.connected; tile.choice = fresh.choice;
@@ -485,6 +488,7 @@
     var key = event.key;
     clock(); wallpaper(); // Catch a missed resume event: the TV may wake with a stale date.
     if (ambient.onKey(event)) { event.preventDefault(); return; } // the key only woke the screensaver
+    if (setup.isOpen()) { setup.onKey(event); return; } // setup owns every key, Back included
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
@@ -593,12 +597,26 @@
     (focusTarget || grid.firstChild).focus();
   }
   // ---- Live inputs: opt-in tile preview and the "device ready" hint (inputs-live.js) ----
-  var live = window.CytInputsLive.create({tv: tv, inputs: config.inputs, tiles: function () { return tiles; }, button: inputButton,
+  // `preview` is a build-time opt-in; setup keeps it in the TV-saved list, and live reads the current list each time.
+  var live = window.CytInputsLive.create({tv: tv, inputs: function () { return inputsConfig; }, tiles: function () { return tiles; }, button: inputButton,
     readSources: readSources, refreshInputs: refreshInputs, moveFocus: moveFocus, glyph: glyph, deviceStyle: core.deviceStyle,
     state: function () { return {menu: !!openMenu, picking: picking, library: libraryOpen, panel: !panel.hidden, video: videoOn}; }});
+  // ---- First-run setup ----
+  function openSetup() {
+    setup.open({config: config, tv: tv, core: core, dock: dockList, inputs: inputsConfig, greeting: setup.storedGreeting(config.greetingName),
+      brand: brand, hello: calendar.greeting, moveFocus: moveFocus, announce: announce, onDone: applySetup});
+  }
+  // Apply the saved choices in place, without a reload, keeping the order saved on this TV.
+  function applySetup() {
+    inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
+    dockList = core.dockApps(config.apps || [], setup.readJson('cyt-dock-apps'));
+    tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), setup.readJson('cyt-order'));
+    render(); readInputs(); clock(); (dock.firstChild || centerButton).focus();
+  }
   function tick() { clock(); readWifi(); wallpaper(); readInputs(); ambient.tick(new Date()); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
   render(); readInputs(); (dock.firstChild || centerButton).focus();
+  if (setup.shouldShow(config)) openSetup();
 }());

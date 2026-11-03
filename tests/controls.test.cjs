@@ -151,7 +151,7 @@ test('buildControls lists the rows in order, with the input rows built from the 
   const app = read('launcher/app.js');
   const body = app.slice(app.indexOf('function buildControls(value) {'), app.indexOf('function openAbout() {'));
   assert.ok(body.length > 100, 'buildControls exists');
-  assert.ok(body.includes('buildInput(core.inputChoices(value, config.inputs));'));
+  assert.ok(body.includes('buildInput(core.inputChoices(value, inputsConfig));')); // the TV-saved list from setup, else the build's
   const order = ["heading('Nguồn vào')", 'buildInput(', "row('Âm lượng'", "row('Tắt tiếng'", "row('Wi-Fi'",
     "row('Hình nền'", "row('Sắp xếp ứng dụng'", "row('Giới thiệu'", "row('Samsung Home', '↗', returnHome)"];
   const at = order.map((text) => body.indexOf(text));
