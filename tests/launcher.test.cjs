@@ -517,3 +517,12 @@ test('an edge press nudges toward the key; every D-pad branch goes through moveF
     assert.ok(css.includes('.nudge-' + dir + '{animation:flat-' + dir) && css.includes('@keyframes lift-' + dir), dir);
   }
 });
+test('preview server serves only top-level launcher page files, never config dirs or traversal', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../tools/preview.cjs'), 'utf8');
+  const allowed = new RegExp(src.match(/const allowedName = \/(.*)\/;/)[1]);
+  for (const ok of ['index.html', 'app.js', 'style.css', 'icon.png', 'screen-saver.js']) assert.ok(allowed.test(ok), ok);
+  for (const bad of ['../cyt/cli.py', '.local/launcher.json', 'service/config.json', 'wallpapers/a.jpg', '.env', 'a.json', 'App.js', '%2e%2e/x.js']) {
+    assert.ok(!allowed.test(bad), bad);
+  }
+  assert.match(src, /listen\(4173, '127\.0\.0\.1'/);
+});
