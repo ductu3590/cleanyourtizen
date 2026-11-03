@@ -98,7 +98,7 @@ test('launcher page stays inside the strict CSP: no inline script, style or hand
 });
 test('launcher input list is limited to the configured sources and Back leaves video first', () => {
   const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
-  assert.ok(app.includes('core.inputChoices(value, config.inputs)'));
+  assert.ok(app.includes('core.inputChoices(value, inputsConfig)'));
   assert.ok(app.indexOf('if (videoOn) leaveVideo()') < app.indexOf('else returnHome()'));
   const cfg = fs.readFileSync(path.join(__dirname, '../launcher/config.js'), 'utf8');
   assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4, dock: true, label: 'PlayStation 4'\}\]/);
@@ -157,10 +157,11 @@ test('dock stays one row up to seven tiles, then wraps at seven', () => {
 });
 test('input tiles read the TV sources again before switching and Back returns focus to the tile', () => {
   const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
-  assert.ok(app.includes('core.dockInputs(config.inputs, null)'));
+  assert.ok(app.includes('core.dockInputs(inputsConfig, null)'));
   assert.match(app, /function openInputTile\(tile, button\) \{\s*readSources\(function \(value\) \{\s*refreshInputs\(value\);\s*if \(tile\.choice\) \{ selectSource\(tile\.choice, button\);/);
-  assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-input'\);/);
-  assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\); \}/);
+  // Back from video returns to the dock tile that started it, else to the control center button.
+  assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-controls'\);/);
+  assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\);/);
   assert.ok(!app.includes('innerHTML'));
 });
 
@@ -488,4 +489,41 @@ test('library opens apps through the guard-aware path, falls back when the TV re
 test('the preview-only library list is not shipped: build writes its own config.js', () => {
   const cli = fs.readFileSync(path.join(__dirname, '../cyt/cli.py'), 'utf8');
   assert.match(cli, /\(destination \/ 'config\.js'\)\.write_text\('window\.CYT_CONFIG = '/);
+});
+
+test('focus motion lifts tiles without a ring and animates only transform and opacity', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../launcher/style.css'), 'utf8');
+  const focus = css.match(/\.app-tile:focus,\.lib-tile:focus,\.thumb:focus\{([^}]*)\}/);
+  assert.ok(focus, 'shared focus rule');
+  assert.match(focus[1], /transform:translateY\(-12px\) scale\(1\.08\)/);
+  assert.ok(!/0 0 0 [45]px rgba\(255,255,255,\.95\)/.test(css), 'the thick white focus ring is gone');
+  for (const frames of css.matchAll(/@keyframes [a-z-]+\{(.*?)\}\}/g)) {
+    const props = [...frames[1].matchAll(/([a-z-]+):/g)].map((m) => m[1]).filter((p) => p !== '-webkit-transform');
+    assert.ok(props.every((p) => p === 'transform' || p === 'opacity'), frames[0].slice(0, 40));
+  }
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\*,\*::after\{transition:none!important;-webkit-animation:none!important;animation:none!important\}\}/);
+  // No CSS newer than the Tizen 6.5 browser: individual transform properties and `inset` are avoided.
+  assert.ok(!/[;{](translate|scale|rotate|inset):/.test(css));
+});
+test('an edge press nudges toward the key; every D-pad branch goes through moveFocus', () => {
+  assert.deepEqual(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].map(core.nudgeClass),
+    ['nudge-left', 'nudge-right', 'nudge-up', 'nudge-down']);
+  assert.equal(core.nudgeClass('Enter'), null); assert.equal(core.nudgeClass('__proto__'), null);
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  // Five call sites: picker, library, menu, arrange panel and the home grid.
+  assert.equal(app.split('moveFocus(').length - 1 - app.split('function moveFocus(').length + 1, 5);
+  assert.ok(!/\]\[[a-z]+\.col\]\.focus\(\)/.test(app), 'no grid branch focuses directly');
+  const css = fs.readFileSync(path.join(__dirname, '../launcher/style.css'), 'utf8');
+  for (const dir of ['left', 'right', 'up', 'down']) {
+    assert.ok(css.includes('.nudge-' + dir + '{animation:flat-' + dir) && css.includes('@keyframes lift-' + dir), dir);
+  }
+});
+test('preview server serves only top-level launcher page files, never config dirs or traversal', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../tools/preview.cjs'), 'utf8');
+  const allowed = new RegExp(src.match(/const allowedName = \/(.*)\/;/)[1]);
+  for (const ok of ['index.html', 'app.js', 'style.css', 'icon.png', 'screen-saver.js']) assert.ok(allowed.test(ok), ok);
+  for (const bad of ['../cyt/cli.py', '.local/launcher.json', 'service/config.json', 'wallpapers/a.jpg', '.env', 'a.json', 'App.js', '%2e%2e/x.js']) {
+    assert.ok(!allowed.test(bad), bad);
+  }
+  assert.match(src, /listen\(port, '127\.0\.0\.1'/); // loopback only, whatever the port
 });

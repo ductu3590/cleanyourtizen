@@ -188,8 +188,12 @@ def build(config, destination, wallpapers=None):
         shutil.copyfile(ROOT / 'launcher' / 'service' / name, destination / 'service' / name)
     (destination / 'service' / 'config.json').write_text(json.dumps(settings, indent=2) + '\n', encoding='utf-8')
     (destination / 'config.xml').write_text(widget_manifest(config), encoding='utf-8')
-    page = {key: value for key, value in config.items() if key != 'service'}
+    # The page never sees the service block; reportUrl in particular stays in service/config.json only.
+    page = {key: value for key, value in config.items() if key not in ('service', 'reportUrl')}
     page['serviceId'] = config['package'] + '.Service'
+    # Shown in the launcher's About view (Giới thiệu): the same version the manifest carries, and the guard mode.
+    page['version'] = config.get('version', '0.1.0')
+    page['serviceMode'] = settings['mode']
     (destination / 'config.js').write_text('window.CYT_CONFIG = ' + json.dumps(page, ensure_ascii=True) + ';\n', encoding='utf-8')
     # Unsigned reproducible bundle for inspection, NOT something we pretend can be installed.
     widget = destination.parent / (destination.name + '-unsigned.wgt')

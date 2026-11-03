@@ -37,7 +37,7 @@ python -m cyt launcher-config --snapshot .local/before.json --apps APPID_1 APPID
 ```
 
 - `--apps`: App IDs in display order. **Five looks best** (one row); 6-10 make two rows. The order can be changed on the TV
-  in **Settings → Sắp xếp ứng dụng** (arrange apps).
+  in **Điều khiển → Sắp xếp ứng dụng** (arrange apps).
 - `--package`: your own ID of **exactly 10 letters or digits**. `CyTizen001` is a development default. Changing it later
   installs a separate app and loses the saved order and wallpaper choice.
 - Then add the optional keys to `.local/launcher.json`: `inputs` (step 7), `greetingName`, `events` (step 10), `service` (step 11).

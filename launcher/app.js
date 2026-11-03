@@ -1,13 +1,15 @@
 (function () {
   'use strict';
   var config = window.CYT_CONFIG, core = window.CytCore, calendar = window.CytCalendar, tv = window.tizen;
+  var controls = window.CytControls;
   var $ = function (id) { return document.getElementById(id); };
   var dock = $('dock'), panel = $('panel'), message = $('message'), home = $('home');
   var menu = $('menu'), menuItems = $('menu-items'), caption = $('caption');
-  var pill = [$('btn-input'), $('btn-wifi'), $('btn-settings')];
-  var CAPTIONS = {input: 'Nguồn vào', wifi: 'Wi-Fi', settings: 'Cài đặt'};
+  // The control center button: the one control at the top right. Its panel (#menu) holds input, sound, Wi-Fi and settings.
+  var centerButton = $('btn-controls');
   var MAIN_RECT = ['0px', '0px', '1920px', '1080px'];
   var timer, saved = [], openMenu = null, videoOn = false, clockTimer = null, picking = false, pickerBack = null;
+  var subBack = null, slideTimer = null;
   var videoReturn = null, preference = 'auto';
   try { preference = localStorage.getItem('cyt-wallpaper') || 'auto'; } catch (error) { preference = 'auto'; }
   try { saved = JSON.parse(localStorage.getItem('cyt-order') || '[]'); } catch (error) { saved = []; }
@@ -15,8 +17,12 @@
   var storedDock = null;
   try { storedDock = JSON.parse(localStorage.getItem('cyt-dock-apps') || 'null'); } catch (error) { storedDock = null; }
   var dockList = core.dockApps(config.apps || [], storedDock);
+  // First-run setup (setup.js): inputs chosen on this TV replace the build's list when they are valid.
+  var setup = window.CytSetup, inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
   // Dock tiles: those apps plus inputs pinned with `dock: true`, in the order saved on this TV.
-  var tiles = core.orderApps(dockList.concat(core.dockInputs(config.inputs, null)), saved);
+  var tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), saved);
+  // Screensaver, night mode and wallpaper contrast. It never touches power, standby or Art Mode.
+  var ambient = window.CytAmbient.init({config: config, isVideo: function () { return videoOn; }, announce: announce});
 
   function announce(text) {
     message.textContent = text; message.hidden = false;
@@ -45,7 +51,7 @@
   function clock() {
     var now = new Date();
     $('time').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    var hello = calendar.greeting(now, config.greetingName);
+    var hello = calendar.greeting(now, setup.storedGreeting(config.greetingName));
     $('greeting').textContent = hello.text;
     document.querySelector('.today').classList.toggle('night', hello.period === 'evening' || hello.period === 'night');
     if (shownDay === now.toDateString()) return;
@@ -66,7 +72,7 @@
     if (!tv || !tv.systeminfo) { if (done) done(); return; }
     try {
       tv.systeminfo.getPropertyValue('WIFI_NETWORK', function (value) {
-        wifi = core.wifiInfo(value); $('btn-wifi').setAttribute('data-bars', String(wifi.bars)); if (done) done();
+        wifi = core.wifiInfo(value); $('wifi-status').setAttribute('data-bars', String(wifi.bars)); if (done) done();
       }, function () { if (done) done(); });
     } catch (error) { if (done) done(); }
   }
@@ -81,7 +87,9 @@
   function volume() { try { return audio().getVolume(); } catch (error) { return null; } }
   function muted() { try { return !!audio().isMute(); } catch (error) { return false; } }
 
-  // ---- Menu ----
+  // ---- Control center ----
+  // One panel that slides in from the right (#menu). Its rows are built in buildControls(); About is a sub-view of it.
+  var MAIN_HINT = 'OK để chọn  ·  Back để đóng';
   function row(label, value, onActivate, options) {
     var button = document.createElement('button'); button.className = 'row'; button.setAttribute('role', 'menuitem');
     var left = document.createElement('span');
@@ -93,24 +101,68 @@
     var right = document.createElement('span'); right.className = 'value'; right.textContent = value || '';
     button.appendChild(right);
     if (options && options.adjust) button.setAttribute('data-adjust', options.adjust);
+    // Information rows (Wi-Fi, About) still take focus, like every row, but nothing happens on OK.
+    if (options && options.info) button.className += ' info';
     if (!onActivate) button.setAttribute('aria-disabled', 'true');
     else button.addEventListener('click', onActivate);
+    button.addEventListener('focus', function () { keepVisible(button); });
     menuItems.appendChild(button);
     return {button: button, value: right};
   }
+  // A quiet section label, a thin divider and a closing note. None of them takes focus.
+  function heading(text) { var title = document.createElement('p'); title.className = 'row-heading'; title.textContent = text; menuItems.appendChild(title); }
+  function divider() { var line = document.createElement('hr'); line.className = 'row-divider'; menuItems.appendChild(line); }
+  function note(text) { var line = document.createElement('p'); line.className = 'row-note'; line.textContent = text; menuItems.appendChild(line); }
+  function menuRows() { return Array.prototype.slice.call(menuItems.querySelectorAll('.row')); }
+  // Scroll the row list itself (never the page), in case a TV shows more rows than fit.
+  function keepVisible(button) {
+    var top = button.offsetTop, bottom = top + button.offsetHeight;
+    if (top < menuItems.scrollTop) menuItems.scrollTop = top;
+    else if (bottom > menuItems.scrollTop + menuItems.clientHeight) menuItems.scrollTop = bottom - menuItems.clientHeight;
+  }
+  function slideMenu(open) {
+    clearTimeout(slideTimer);
+    if (open) { menu.hidden = false; void menu.offsetWidth; menu.classList.add('open'); return; }
+    menu.classList.remove('open');
+    // Hide after the slide-out, so the off-screen rows can never take focus.
+    slideTimer = setTimeout(function () { if (!openMenu) menu.hidden = true; }, 450);
+  }
   function setMenuOpen(name) {
-    openMenu = name;
+    if (name) live.stop();
+    var was = openMenu;
+    openMenu = name; subBack = null;
     document.body.classList.toggle('menu-open', !!name);
-    pill.forEach(function (button) { button.classList.toggle('active', button.getAttribute('data-menu') === name); });
-    menu.hidden = !name;
+    centerButton.classList.toggle('active', !!name);
+    centerButton.setAttribute('aria-expanded', name ? 'true' : 'false');
+    if (!name !== !was) slideMenu(!!name);
   }
   function closeMenu() {
     var name = openMenu; setMenuOpen(null);
-    if (name) $('btn-' + name).focus();
+    if (name) centerButton.focus();
   }
-  function focusFirstRow() { var first = menuItems.firstChild; if (first) first.focus(); }
+  function focusFirstRow() { var first = menuRows()[0]; if (first) first.focus(); }
+  function enterRows() { menuItems.classList.remove('enter'); void menuItems.offsetWidth; menuItems.classList.add('enter'); }
   function showMenu(name, title, build) {
-    menuItems.textContent = ''; $('menu-title').textContent = title; build(); setMenuOpen(name); focusFirstRow();
+    menuItems.textContent = ''; menuItems.scrollTop = 0; menu.classList.remove('sub');
+    $('menu-title').textContent = title; $('menu-hint').textContent = MAIN_HINT;
+    build(); setMenuOpen(name); focusFirstRow();
+  }
+  // A view inside the panel, such as Giới thiệu. The panel rows wait aside; Back puts them back on the row that opened it.
+  function openSubView(title, build) {
+    var from = document.activeElement, rows = document.createDocumentFragment(), mainTitle = $('menu-title').textContent;
+    while (menuItems.firstChild) rows.appendChild(menuItems.firstChild);
+    $('menu-title').textContent = title; $('menu-hint').textContent = 'Back để quay lại'; menu.classList.add('sub');
+    build(); menuItems.scrollTop = 0; enterRows(); focusFirstRow();
+    subBack = function () {
+      menuItems.textContent = ''; menuItems.appendChild(rows); menu.classList.remove('sub');
+      $('menu-title').textContent = mainTitle; $('menu-hint').textContent = MAIN_HINT; enterRows();
+      if (from && from.parentNode) from.focus(); else focusFirstRow();
+    };
+  }
+  // Back inside the panel: leave a sub-view first, then close the panel and return to the control center button.
+  function menuBack() {
+    if (subBack) { var back = subBack; subBack = null; back(); return; }
+    closeMenu();
   }
   function enterVideo(choice) {
     return function () {
@@ -123,6 +175,7 @@
     };
   }
   function selectSource(choice, returnTo) {
+    live.switching();
     videoReturn = returnTo || null;
     if (!tv || !tv.tvwindow) { announce('Bản xem trước · ' + choice.title); return; }
     try { tv.tvwindow.setSource(choice.source, enterVideo(choice), function () { announce('Không chuyển được sang ' + choice.title + '.'); }); }
@@ -131,8 +184,8 @@
   function leaveVideo() {
     hideVideo(function () {
       document.documentElement.classList.remove('video'); document.body.classList.remove('video');
-      var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-input');
-      videoReturn = null; back.focus();
+      var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-controls');
+      videoReturn = null; back.focus(); live.videoClosed();
     });
   }
   function buildInput(choices) {
@@ -142,39 +195,52 @@
         function () { selectSource(choice); }, {dot: choice.connected});
     });
   }
-  function openInput() {
+  // Read the sources and Wi-Fi first, so the panel opens complete and focus lands once.
+  function openControls() {
     readSources(function (value) {
-      showMenu('input', 'Nguồn vào', function () { buildInput(core.inputChoices(value, config.inputs)); });
+      readWifi(function () { showMenu('controls', 'Điều khiển', function () { buildControls(value); }); });
     });
   }
-  function openWifi() {
-    readWifi(function () {
-      showMenu('wifi', 'Wi-Fi', function () {
-        if (!wifi.on) { row('Wi-Fi', 'Đang tắt hoặc chưa kết nối', null); return; }
-        row('Mạng', wifi.ssid, null); row('Tín hiệu', wifi.percent + '%', null);
+  // Every row of the control center, top to bottom. Add a row with row(label, value, onActivate, options) where it belongs.
+  function buildControls(value) {
+    heading('Nguồn vào');
+    buildInput(core.inputChoices(value, inputsConfig));
+    divider();
+    var current = volume();
+    var volumeRow = row('Âm lượng', current === null ? 'Không điều khiển được' : '‹  ' + current + '  ›', null, {adjust: 'volume'});
+    volumeRow.button.removeAttribute('aria-disabled');
+    if (current === null) volumeRow.button.setAttribute('aria-disabled', 'true');
+    var muteRow = row('Tắt tiếng', muted() ? 'Bật' : 'Tắt', function () {
+      try { audio().setMute(!muted()); muteRow.value.textContent = muted() ? 'Bật' : 'Tắt'; }
+      catch (error) { announce('Không điều khiển được âm thanh.'); }
+    });
+    divider();
+    row('Wi-Fi', wifi.on ? wifi.ssid + '  ·  ' + wifi.percent + '%' : 'Đang tắt hoặc chưa kết nối', null, {info: true});
+    divider();
+    if ((config.wallpapers || []).length) {
+      row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
+    }
+    if (ambient.nightAllowed()) {
+      var nightRow = row('Chế độ đêm', ambient.nightLabel(), function () { nightRow.value.textContent = ambient.toggleNight(); });
+    }
+    row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
+    divider();
+    row('Giới thiệu', '›', openAbout);
+    row('Thiết lập lại', '›', function () { setMenuOpen(null); openSetup(); });
+    row('Samsung Home', '↗', returnHome);
+  }
+  // Giới thiệu: read-only facts. TV values come from systeminfo; version and service mode from the built page config.
+  function openAbout() {
+    controls.readAbout(tv, function (system) {
+      if (openMenu !== 'controls' || subBack) return; // the panel closed while the TV answered
+      var apps = tiles.filter(function (tile) { return tile.kind !== 'input'; }).length;
+      system.version = config.version; system.serviceMode = config.serviceMode;
+      system.dockApps = apps; system.dockInputs = tiles.length - apps;
+      openSubView('Giới thiệu', function () {
+        controls.aboutRows(system).forEach(function (line) { row(line[0], line[1], null, {info: true}); });
+        note(controls.NOTE);
       });
-    });
-  }
-  function openSettings() {
-    showMenu('settings', 'Cài đặt', function () {
-      var current = volume();
-      var volumeRow = row('Âm lượng', current === null ? 'Không điều khiển được' : '‹  ' + current + '  ›', null, {adjust: 'volume'});
-      volumeRow.button.removeAttribute('aria-disabled');
-      if (current === null) volumeRow.button.setAttribute('aria-disabled', 'true');
-      var muteRow = row('Tắt tiếng', muted() ? 'Bật' : 'Tắt', function () {
-        try { audio().setMute(!muted()); muteRow.value.textContent = muted() ? 'Bật' : 'Tắt'; }
-        catch (error) { announce('Không điều khiển được âm thanh.'); }
-      });
-      if ((config.wallpapers || []).length) {
-        row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
-      }
-      row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
-      row('Samsung Home', '↗', returnHome);
-    });
-  }
-  function toggleMenu(name) {
-    if (openMenu === name) { closeMenu(); return; }
-    if (name === 'input') openInput(); else if (name === 'wifi') openWifi(); else openSettings();
+    }, 1500);
   }
   function adjustVolume(key, target) {
     var current = volume();
@@ -192,6 +258,9 @@
     if (value.indexOf('nuvio') >= 0) return ['nuvio', 'N', 'NUVIO'];
     if (value.indexOf('youtube') >= 0) return ['youtube', '▶', 'YouTube'];
     if (value.indexOf('netflix') >= 0) return ['netflix', 'N', 'NETFLIX'];
+    if (value.indexOf('galaxy') >= 0 || value.indexOf('fim+') >= 0) return ['galaxyplay', 'G', 'GALAXY PLAY'];
+    if (value.indexOf('tv360') >= 0 || value.indexOf('tv 360') >= 0) return ['tv360', '360', 'TV360'];
+    if (value.indexOf('multiscreen') >= 0 || value.indexOf('mutilscreen') >= 0 || value.indexOf('multi screen') >= 0 || value.indexOf('app launcher') >= 0) return ['multiscreen', '⧉', 'MULTISCREEN'];
     return ['generic', name.substring(0, 2).toUpperCase(), name];
   }
   var SVG = 'http://www.w3.org/2000/svg';
@@ -228,13 +297,14 @@
   }
   // Refresh names and signal from the TV without rebuilding the dock, so focus stays where it is.
   function refreshInputs(value) {
-    core.dockInputs(config.inputs, value).forEach(function (fresh) {
+    core.dockInputs(inputsConfig, value).forEach(function (fresh) {
       var tile = tiles.filter(function (item) { return item.id === fresh.id; })[0];
       if (!tile) return;
       tile.name = fresh.name; tile.connected = fresh.connected; tile.choice = fresh.choice;
       var button = inputButton(tile.id);
       if (button) drawInput(tile, button);
     });
+    live.refreshed();
   }
   function readInputs() {
     if (tiles.some(function (tile) { return tile.kind === 'input'; })) readSources(refreshInputs);
@@ -244,17 +314,20 @@
     readSources(function (value) {
       refreshInputs(value);
       if (tile.choice) { selectSource(tile.choice, button); return; }
-      announce(tv ? 'TV chưa báo nguồn ' + tile.title + '. Thử lại bằng nút Nguồn vào.' : 'Bản xem trước · ' + tile.name + ' (' + tile.title + ')');
+      announce(tv ? 'TV chưa báo nguồn ' + tile.title + '. Thử lại trong Điều khiển › Nguồn vào.' : 'Bản xem trước · ' + tile.name + ' (' + tile.title + ')');
     });
   }
   function render() {
     dock.textContent = '';
-    dock.setAttribute('data-cols', String(core.dockColumns(tiles.length + 1)));
-    tiles.forEach(function (app) {
+    var dockTiles = tiles.slice(0, 6);
+    dock.setAttribute('data-cols', String(core.dockColumns(dockTiles.length)));
+    dockTiles.forEach(function (app) {
       if (app.kind === 'input') {
         var source = document.createElement('button');
         source.setAttribute('data-id', app.id); drawInput(app, source);
         source.addEventListener('click', function () { openInputTile(app, source); });
+        source.addEventListener('focus', function () { live.focus(app, source); });
+        source.addEventListener('blur', function () { live.blur(source); });
         dock.appendChild(source);
         return;
       }
@@ -267,13 +340,14 @@
       button.addEventListener('click', function () { openShortcut(app.id); });
       dock.appendChild(button);
     });
-    // The library tile always closes the row: it is how apps are added to the dock on the TV.
-    var all = document.createElement('button'); all.id = 'btn-library'; all.className = 'app-tile library-tile';
-    all.setAttribute('aria-label', 'Tất cả ứng dụng');
-    var allLabel = document.createElement('span'); allLabel.className = 'tile-label'; allLabel.textContent = 'Ứng dụng';
-    all.appendChild(glyph('library')); all.appendChild(allLabel);
-    all.addEventListener('click', openLibrary);
-    dock.appendChild(all);
+    if (dockTiles.length < 6) {
+      var all = document.createElement('button'); all.id = 'btn-library'; all.className = 'app-tile library-tile';
+      all.setAttribute('aria-label', 'Tất cả ứng dụng');
+      var allLabel = document.createElement('span'); allLabel.className = 'tile-label'; allLabel.textContent = 'Ứng dụng';
+      all.appendChild(glyph('library')); all.appendChild(allLabel);
+      all.addEventListener('click', openLibrary);
+      dock.appendChild(all);
+    }
     if (!tiles.length) announce('Dock chưa có ứng dụng. Chọn ô Ứng dụng để ghim.');
   }
 
@@ -356,22 +430,50 @@
     try { tv.application.getAppsInfo(function (list) { done(core.libraryApps(list, exclude)); }, fallback); }
     catch (error) { fallback(); }
   }
+  var lastDockIndex = 0;
+  function fillSelectedApps() {
+    libraryGrid.textContent = '';
+    $('library-count').textContent = tiles.length ? String(tiles.length) : '';
+    $('library-hint').textContent = 'OK để mở  ·  Sửa dock để chọn ứng dụng cho màn hình chính  ·  Back để quay lại';
+    tiles.forEach(function (app) {
+      if (app.kind === 'input') {
+        var source = document.createElement('button');
+        source.className = 'lib-tile input-tile ' + core.deviceStyle(app.name);
+        source.setAttribute('data-id', app.id);
+        var label = document.createElement('span'); label.className = 'lib-name'; label.textContent = app.name;
+        source.appendChild(glyph('device')); source.appendChild(label);
+        source.addEventListener('click', function () { closeLibrary(); openInputTile(app, source); });
+        libraryGrid.appendChild(source);
+        return;
+      }
+      libraryGrid.appendChild(libraryTile(app));
+    });
+    if (libraryGrid.firstChild) libraryGrid.firstChild.focus();
+  }
   function openLibrary() {
     editing = false; libraryHint();
     libraryOpen = true; document.body.classList.add('library-open'); library.hidden = false;
-    libraryGrid.textContent = ''; $('library-count').textContent = ''; $('library-edit').focus();
-    readLibrary(fillLibrary);
+    fillSelectedApps();
   }
   function closeLibrary() {
     libraryOpen = false; editing = false; library.hidden = true; document.body.classList.remove('library-open');
-    var tile = $('btn-library'); if (tile) tile.focus();
+    var target = (dock.children && dock.children[lastDockIndex]) || (dock.children && dock.children[0]) || $('btn-library');
+    if (target) target.focus();
   }
   function libraryBack() {
-    if (editing) { editing = false; libraryHint(); return; }
+    if (editing) { editing = false; libraryHint(); fillSelectedApps(); return; }
     closeLibrary();
   }
-  $('library-edit').addEventListener('click', function () { editing = !editing; libraryHint(); });
-  function closePanel() { panel.hidden = true; home.hidden = false; $('btn-settings').focus(); }
+  $('library-edit').addEventListener('click', function () {
+    editing = !editing; libraryHint();
+    if (editing) {
+      libraryGrid.textContent = ''; $('library-count').textContent = '';
+      readLibrary(fillLibrary);
+    } else {
+      fillSelectedApps();
+    }
+  });
+  function closePanel() { panel.hidden = true; home.hidden = false; centerButton.focus(); }
   function openPanel() {
     var target = $('arrange'); target.textContent = '';
     tiles.forEach(function (app, index) {
@@ -389,28 +491,44 @@
   }
 
   // ---- Wiring ----
-  pill.forEach(function (button) {
-    button.addEventListener('click', function () { toggleMenu(button.getAttribute('data-menu')); });
-    button.addEventListener('focus', function () { caption.textContent = CAPTIONS[button.getAttribute('data-menu')]; });
-    button.addEventListener('blur', function () { caption.textContent = ''; });
-  });
+  centerButton.addEventListener('click', function () { if (openMenu) closeMenu(); else openControls(); });
+  centerButton.addEventListener('focus', function () { caption.textContent = 'Điều khiển'; });
+  centerButton.addEventListener('blur', function () { caption.textContent = ''; });
   $('close-panel').addEventListener('click', closePanel);
 
+  // Move focus, or at an edge nudge the focused item toward the key so the press is never silent.
+  var NUDGE_NAMES = ['nudge-left', 'nudge-right', 'nudge-up', 'nudge-down'];
+  function moveFocus(target, key) {
+    var here = document.activeElement;
+    if (target && target !== here) { target.focus(); return; }
+    var name = core.nudgeClass(key);
+    if (!name || !here || !here.classList) return;
+    NUDGE_NAMES.forEach(function (old) { here.classList.remove(old); });
+    void here.offsetWidth; // restart the animation on repeated presses
+    here.classList.add(name);
+  }
+  document.addEventListener('animationend', function (event) {
+    if (event.target && event.target.classList && /^(flat|lift)-/.test(event.animationName)) {
+      NUDGE_NAMES.forEach(function (old) { event.target.classList.remove(old); });
+    }
+  });
   function focusRows() {
-    var rows = [pill], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
+    var rows = [[centerButton]], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
     for (var start = 0; start < buttons.length; start += cols) rows.push(buttons.slice(start, start + cols));
     return rows;
   }
   document.addEventListener('keydown', function (event) {
     var key = event.key;
     clock(); wallpaper(); // Catch a missed resume event: the TV may wake with a stale date.
+    if (ambient.onKey(event)) { event.preventDefault(); return; } // the key only woke the screensaver
+    if (setup.isOpen()) { setup.onKey(event); return; } // setup owns every key, Back included
     if (event.keyCode === 10009 || key === 'Escape') {
       event.preventDefault();
       if (videoOn) leaveVideo();
       else if (picking) pickerBack();
       else if (libraryOpen) libraryBack();
       else if (!panel.hidden) closePanel();
-      else if (openMenu) closeMenu();
+      else if (openMenu) menuBack();
       else returnHome();
       return;
     }
@@ -425,7 +543,7 @@
       for (var from = 0; from < thumbs.length; from += 5) lines.push(thumbs.slice(from, from + 5));
       var here = {row: 0, col: 0};
       lines.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) here = {row: rowIndex, col: col}; });
-      var moved = core.nextFocus(lines, here, key); lines[moved.row][moved.col].focus();
+      var moved = core.nextFocus(lines, here, key); moveFocus(lines[moved.row][moved.col], key);
       return;
     }
     if (libraryOpen) {
@@ -433,31 +551,42 @@
       for (var cell = 0; cell < cells.length; cell += LIBRARY_COLS) table.push(cells.slice(cell, cell + LIBRARY_COLS));
       var spot = {row: 0, col: 0};
       table.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) spot = {row: rowIndex, col: col}; });
-      var go = core.nextFocus(table, spot, key); table[go.row][go.col].focus();
+      if (key === 'ArrowUp' && spot.row === 0) {
+        closeLibrary();
+        return;
+      }
+      var go = core.nextFocus(table, spot, key); moveFocus(table[go.row][go.col], key);
       return;
     }
     if (openMenu) {
-      var rows = Array.prototype.slice.call(menuItems.children), at = rows.indexOf(document.activeElement);
+      var rows = menuRows(), at = rows.indexOf(document.activeElement);
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
         if (at >= 0 && rows[at].getAttribute('data-adjust') === 'volume') adjustVolume(key, rows[at]);
         return;
       }
       var to = core.step(at < 0 ? 0 : at, rows.length, key);
-      if (to >= 0 && rows[to]) rows[to].focus();
+      if (to >= 0 && rows[to]) moveFocus(rows[to], key);
       return;
     }
     if (!panel.hidden) {
       var list = [$('close-panel')].concat(Array.prototype.slice.call(document.querySelectorAll('#arrange button')));
       var index = list.indexOf(document.activeElement), next = core.step(index < 0 ? 0 : index, list.length, key);
-      if (next >= 0) list[next].focus();
+      if (next >= 0) moveFocus(list[next], key);
       return;
     }
     var grid = focusRows(), position = {row: 0, col: 0};
     grid.forEach(function (line, rowIndex) { var col = line.indexOf(document.activeElement); if (col >= 0) position = {row: rowIndex, col: col}; });
-    var target = core.nextFocus(grid, position, key); grid[target.row][target.col].focus();
+    if (position.row > 0 && key === 'ArrowDown') {
+      lastDockIndex = position.col;
+      openLibrary();
+      return;
+    }
+    var target = core.nextFocus(grid, position, key); moveFocus(grid[target.row][target.col], key);
   });
   // Do not register or intercept Home/Power. In particular, leave The Frame Art Mode alone.
   document.addEventListener('visibilitychange', function () {
+    ambient.visible(!document.hidden);
+    live.visibility(!document.hidden);
     core.tellService(tv, config.serviceId, document.hidden ? 'ui-hidden' : 'ui-visible', function () {});
     if (document.hidden) { clearInterval(clockTimer); clockTimer = null; }
     else { tick(); if (!clockTimer) clockTimer = setInterval(tick, 30000); }
@@ -468,6 +597,7 @@
     shownWallpaper = url;
     document.body.style.backgroundImage = 'url("' + url + '")';
     document.body.classList.add('has-wallpaper');
+    ambient.wallpaperChanged(url);
   }
   function wallpaper() {
     if (picking) return;
@@ -479,7 +609,7 @@
   }
   function closePicker() {
     picking = false; $('picker').hidden = true; document.body.classList.remove('picking');
-    $('btn-settings').focus();
+    centerButton.focus();
   }
   function openPicker() {
     var names = config.wallpapers || [], grid = $('picker-grid'), previous = shownWallpaper;
@@ -508,9 +638,27 @@
     picking = true; document.body.classList.add('picking'); $('picker').hidden = false;
     (focusTarget || grid.firstChild).focus();
   }
-  function tick() { clock(); readWifi(); wallpaper(); readInputs(); }
+  // ---- Live inputs: opt-in tile preview and the "device ready" hint (inputs-live.js) ----
+  // `preview` is a build-time opt-in; setup keeps it in the TV-saved list, and live reads the current list each time.
+  var live = window.CytInputsLive.create({tv: tv, inputs: function () { return inputsConfig; }, tiles: function () { return tiles; }, button: inputButton,
+    readSources: readSources, refreshInputs: refreshInputs, moveFocus: moveFocus, glyph: glyph, deviceStyle: core.deviceStyle,
+    state: function () { return {menu: !!openMenu, picking: picking, library: libraryOpen, panel: !panel.hidden, video: videoOn}; }});
+  // ---- First-run setup ----
+  function openSetup() {
+    setup.open({config: config, tv: tv, core: core, dock: dockList, inputs: inputsConfig, greeting: setup.storedGreeting(config.greetingName),
+      brand: brand, hello: calendar.greeting, moveFocus: moveFocus, announce: announce, onDone: applySetup});
+  }
+  // Apply the saved choices in place, without a reload, keeping the order saved on this TV.
+  function applySetup() {
+    inputsConfig = setup.storedInputs(config.inputs, setup.readJson('cyt-inputs'));
+    dockList = core.dockApps(config.apps || [], setup.readJson('cyt-dock-apps'));
+    tiles = core.orderApps(dockList.concat(core.dockInputs(inputsConfig, null)), setup.readJson('cyt-order'));
+    render(); readInputs(); clock(); (dock.firstChild || centerButton).focus();
+  }
+  function tick() { clock(); readWifi(); wallpaper(); readInputs(); ambient.tick(new Date()); }
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
-  render(); readInputs(); (dock.firstChild || $('btn-settings')).focus();
+  render(); readInputs(); (dock.firstChild || centerButton).focus();
+  if (setup.shouldShow(config)) openSetup();
 }());

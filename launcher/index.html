@@ -10,16 +10,13 @@
     <p class="greeting glass"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M12 3v2M4.9 6.4l1.4 1.4M19.1 6.4l-1.4 1.4M2 13h2M20 13h2M3 18h18"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span id="greeting"></span><svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-9.2-8.6C1.4 8.6 3 5 6.5 5c2 0 3.5 1.2 5.5 3.3C14 6.2 15.5 5 17.5 5 21 5 22.6 8.6 21.2 11.4 19 15.6 12 20 12 20z"/></svg></p>
     <p class="events"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h1M11.5 14h1M15.5 14h1M7.5 17.5h1M11.5 17.5h1"/></svg><span id="events"></span></p>
   </section>
-  <nav class="pill glass" aria-label="Điều khiển nhanh">
-    <button id="btn-input" data-menu="input" aria-label="Nguồn vào" aria-haspopup="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg></button>
-    <button id="btn-wifi" data-menu="wifi" data-bars="0" aria-label="Wi-Fi" aria-haspopup="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="arc a3" d="M2.5 9a14 14 0 0 1 19 0"/><path class="arc a2" d="M6 12.8a9 9 0 0 1 12 0"/><path class="arc a1" d="M9.2 16.4a4.5 4.5 0 0 1 5.6 0"/><circle class="dot" cx="12" cy="19.6" r="1"/></svg></button>
-    <button id="btn-settings" data-menu="settings" aria-label="Cài đặt" aria-haspopup="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <nav class="control glass" aria-label="Điều khiển nhanh">
+    <span id="wifi-status" class="wifi-status" data-bars="0" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path class="arc a3" d="M2.5 9a14 14 0 0 1 19 0"/><path class="arc a2" d="M6 12.8a9 9 0 0 1 12 0"/><path class="arc a1" d="M9.2 16.4a4.5 4.5 0 0 1 5.6 0"/><circle class="dot" cx="12" cy="19.6" r="1"/></svg></span>
+    <button id="btn-controls" aria-label="Trung tâm điều khiển" aria-haspopup="true" aria-controls="menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h8M18 8h2M4 16h2M12 16h8"/><circle cx="15" cy="8" r="2.6"/><circle cx="9" cy="16" r="2.6"/></svg></button>
   </nav>
   <p id="caption" class="caption"></p>
-  <div id="menu" class="menu glass" role="menu" hidden><h2 id="menu-title"></h2><div id="menu-items"></div></div>
   <section id="dock" class="dock" aria-label="Ứng dụng"></section>
   <section id="picker" class="picker glass" role="listbox" aria-label="Hình nền" hidden>
     <h2>Hình nền</h2><div id="picker-grid" class="picker-grid"></div>
@@ -32,7 +29,8 @@
   </section>
   <p id="mode" class="mode"></p>
 </main>
+<aside id="menu" class="menu glass" role="menu" aria-label="Trung tâm điều khiển" hidden><h2 id="menu-title"></h2><div id="menu-items" class="menu-items"></div><p id="menu-hint" class="menu-hint"></p></aside>
 <section id="panel" class="panel" hidden aria-label="Sắp xếp ứng dụng"><div class="panel-header"><div><p class="eyebrow">SẮP XẾP</p><h2>Đưa ứng dụng bạn thích lên trước.</h2></div><button id="close-panel">Xong</button></div><p class="panel-note">Chọn ứng dụng để đưa lên đầu hàng. Thứ tự được lưu trên TV này.</p><div id="arrange" class="arrange"></div></section>
 <div id="message" role="status" aria-live="polite" hidden></div>
-<script src="config.js"></script><script src="core.js"></script><script src="calendar.js"></script><script src="app.js"></script>
+<script src="config.js"></script><script src="core.js"></script><script src="calendar.js"></script><script src="controls.js"></script><script src="ambient.js"></script><script src="inputs-live.js"></script><script src="setup.js"></script><script src="app.js"></script>
 </body></html>

@@ -119,6 +119,8 @@
     if (current.length >= DOCK_MAX) return {list: current, pinned: false, full: true};
     return {list: current.concat([{id: app.id, name: app.name}]), pinned: true, full: false};
   }
+  var NUDGES = {ArrowLeft: 'nudge-left', ArrowRight: 'nudge-right', ArrowUp: 'nudge-up', ArrowDown: 'nudge-down'};
+  function nudgeClass(key) { return Object.prototype.hasOwnProperty.call(NUDGES, key) ? NUDGES[key] : null; }
   function wifiInfo(value) {
     var on = !!value && value.status === 'ON' && typeof value.ssid === 'string' && value.ssid !== '';
     var strength = on && typeof value.signalStrength === 'number' ? Math.max(0, Math.min(1, value.signalStrength)) : 0;
@@ -160,5 +162,5 @@
   }
   return {wallpaperFor: wallpaperFor, nextFocus: nextFocus, orderApps: orderApps, launch: launch, inputChoices: inputChoices,
     dockInputs: dockInputs, deviceStyle: deviceStyle, dockColumns: dockColumns, wifiInfo: wifiInfo,
-    libraryApps: libraryApps, dockApps: dockApps, togglePin: togglePin, DOCK_MAX: DOCK_MAX, step: step, adjustVolume: adjustVolume, tellService: tellService};
+    nudgeClass: nudgeClass, libraryApps: libraryApps, dockApps: dockApps, togglePin: togglePin, DOCK_MAX: DOCK_MAX, step: step, adjustVolume: adjustVolume, tellService: tellService};
 }));

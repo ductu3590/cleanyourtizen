@@ -17,12 +17,25 @@ Art Mode stay untouched.
 ## Highlights
 
 - Big clock and date, a time-of-day greeting, the Vietnamese lunar date and a one-line countdown to the next 2-3 holidays or family days.
-- A quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
+- One **control center** button at the top right, with a quiet Wi-Fi indicator. OK slides in a glass panel with inputs,
+  volume and mute, Wi-Fi, wallpaper, night mode, app arrangement, **About**, setup and Samsung Home.
+- **First-run setup on the TV:** a short D-pad flow picks the home-row apps, which HDMI devices get a tile, and an optional
+  family name for the greeting. Back skips it; run it again from Điều khiển → Thiết lập lại; `"setup": false` turns it off.
 - **Input switching** with the device names your TV reports (for example a game console on HDMI 4), and optional
   dock tiles for inputs such as a PlayStation 4, with a quiet dot that shows whether the device has a signal.
 - An **app library** with every app the TV lists, opened from the last tile in the row. **Sửa dock** pins or unpins apps
   on the TV itself, without rebuilding; the choice is saved on that TV.
 - **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
+- **Focus motion** in the spirit of tvOS: the selected tile lifts with a soft shadow and a sweep of light, and an edge press
+  nudges instead of doing nothing. Only transform and opacity animate.
+- **Screensaver** after a few idle minutes (`"screensaverMinutes": 5`, `0` turns it off): your wallpapers cross-fade with a
+  slow Ken Burns move and a small clock that changes corner. Any key wakes it without acting. It never covers an HDMI input,
+  and the TV's own screen saver and auto power off still work.
+- **Night mode** dims and warms the screen from 22:00 to 06:00 (`"night": {"from": 22, "to": 6}` or `false`); Điều khiển →
+  Chế độ đêm switches between Tự động and Tắt. **Adaptive contrast** deepens the shade behind text on bright wallpapers.
+- **Device ready:** when a docked HDMI device starts sending a signal, a small note says so ("PlayStation 4 đã sẵn sàng"),
+  and if the remote has been idle, focus moves to its tile so one OK plays. **Live preview** (opt-in, `"preview": true` on a
+  docked input) plays the device's picture inside its tile; the TV really switches to that source, so its sound plays too.
 - **Daily wallpaper** from your own images, with a quick picker that previews each one live.
 - Optional background service that brings the launcher back when Home is pressed, while leaving Art Mode, standby and running apps alone.
 - Everything is local HTML/CSS/JS. No network calls, no accounts, no analytics.
@@ -51,7 +64,7 @@ Not affiliated with Samsung or Apple. App names are their owners' trademarks; ti
 | Preview selected app removal | Offline plan; no default deletion set |
 | Uninstall reviewed user-facing packages | Explicit plan hash, data-loss acknowledgement, per-package verification |
 | Restore removed app data | **Not possible from an inventory.** Manual store reinstall only |
-| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, greeting, lunar date and countdown, Wi-Fi, input and settings pill, volume/mute, daily or chosen wallpaper, ordered shortcuts, app library with on-TV pinning (not yet verified on the TV), Samsung Home escape |
+| Standalone launcher | Tizen 6.5+ target, local HTML/CSS/JS. Glass home with clock, greeting, lunar date and countdown, control center (inputs, Wi-Fi, volume/mute, About), daily or chosen wallpaper, ordered shortcuts, Samsung Home escape. Not yet verified on the TV: app library and pinning, first-run setup, screensaver, night mode, adaptive contrast, device-ready hint, live input preview |
 | Signed launcher installation | Requires your own Samsung certificates and signed WGT |
 | Replace physical Home / Power / brand hotkeys | **Not possible for a normal app.** They are absent from the TV's supported keys; see [the device profile](profiles/qa55ls03b.json) |
 | Return to launcher when Home covers it | Opt-in background web service (`service.mode: guard`); see below |
@@ -140,13 +153,13 @@ Optional private settings in `.local/launcher.json`:
 - `"inputs": [{"type": "HDMI", "number": 4}]` lists the only inputs shown in the input menu. The TV supplies their names.
   Add `"dock": true` to also show that input as a tile in the app row, for example
   `{"type": "HDMI", "number": 4, "dock": true}`; an optional `"label": "PS4"` replaces the TV's name on the tile.
-  The tile is ordered with your apps in Settings → Sắp xếp ứng dụng, and Back returns to it from the input.
+  The tile is ordered with your apps in Điều khiển → Sắp xếp ứng dụng, and Back returns to it from the input.
 - `"greetingName": "nhà An Bình"` adds a name to the time-of-day greeting.
 - `"events": [{"name": "Sinh nhật Bi", "month": 10, "day": 29}, {"name": "Giỗ ông", "month": 9, "day": 20, "lunar": true}]`
   adds private days to the countdown line, which shows the nearest 2-3 events (Vietnamese and international days built in)
   next to the Vietnamese lunar date.
 - `--wallpapers DIR` bundles up to 60 `jpg`/`png` files (at most 2.5 MB each, 1920x1080 recommended).
-  One is shown per local day, in file-name order; Settings → Hình nền previews and saves a fixed choice.
+  One is shown per local day, in file-name order; Điều khiển → Hình nền previews and saves a fixed choice.
 
 The build creates a staging directory and a deterministic **unsigned** WGT for inspection.
 It is deliberately refused by `cyt install`. Sign the staging directory with Samsung's official

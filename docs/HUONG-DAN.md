@@ -105,7 +105,7 @@ thay tên TV báo bằng tên bạn đặt:
 ```
 
 Ô hiện tên thiết bị, nhãn nhỏ `HDMI 4` và chấm xanh khi thiết bị đang có tín hiệu; khi không có tín hiệu ô mờ đi.
-Nút OK chuyển sang nguồn đó, nút Back quay lại đúng ô. Đổi vị trí ô trong **Cài đặt → Sắp xếp ứng dụng** như mọi ứng dụng.
+Nút OK chuyển sang nguồn đó, nút Back quay lại đúng ô. Đổi vị trí ô trong **Điều khiển → Sắp xếp ứng dụng** như mọi ứng dụng.
 
 ## 8. (Không bắt buộc) Ảnh nền đổi mỗi ngày
 
@@ -113,7 +113,7 @@ Nút OK chuyển sang nguồn đó, nút Back quay lại đúng ô. Đổi vị 
 2. Đặt tất cả vào một thư mục, ví dụ `.local/wallpapers`.
 3. Thêm `--wallpapers .local/wallpapers` vào lệnh build ở bước 9.
 
-Launcher dùng một ảnh mỗi ngày theo thứ tự tên file. Trong **Cài đặt → Hình nền** bạn xem trước từng ảnh, chọn một ảnh cố định hoặc quay lại **Tự động mỗi ngày**.
+Launcher dùng một ảnh mỗi ngày theo thứ tự tên file. Trong **Điều khiển → Hình nền** bạn xem trước từng ảnh, chọn một ảnh cố định hoặc quay lại **Tự động mỗi ngày**.
 Dùng ảnh bạn có quyền sử dụng. Repo không kèm ảnh nền.
 
 ## 9. Build, ký và cài
@@ -190,10 +190,14 @@ Nên bật chế độ **mở lại ứng dụng cuối cùng khi bật TV** (*A
 
 ![Màn hình chính](images/launcher-home.png)
 
-- **Thanh trên cùng bên phải:**
-  - **Nguồn vào:** chọn thiết bị HDMI (nút OK chuyển sang nguồn đó, nút Back quay về launcher).
-  - **Wi-Fi:** tên mạng và độ mạnh tín hiệu.
-  - **Cài đặt:** âm lượng (mũi tên trái/phải), tắt tiếng, hình nền, sắp xếp ứng dụng, Samsung Home.
+- **Lần mở đầu tiên:** vài bước thiết lập (Chào mừng → ứng dụng cho hàng dưới → thiết bị HDMI → tên gia đình, không bắt buộc).
+  Back ở bước đầu để bỏ qua. Chạy lại ở **Điều khiển → Thiết lập lại**. Ô nhập tên dùng bàn phím ảo của TV (chưa kiểm chứng trên TV).
+- **Nút Điều khiển (góc trên bên phải):** bảng trượt vào từ mép phải gồm nguồn vào (OK chuyển nguồn, Back quay về), âm lượng
+  (trái/phải), tắt tiếng, Wi-Fi, hình nền, **Chế độ đêm** (Tự động/Tắt), sắp xếp ứng dụng, **Giới thiệu** (phiên bản, mẫu TV và
+  phần mềm, phiên bản Tizen, độ phân giải, số ứng dụng trên dock, chế độ dịch vụ nền; chỉ đọc), Thiết lập lại và Samsung Home.
+- **Màn hình chờ** sau `screensaverMinutes` phút không bấm phím (mặc định 5, `0` để tắt); phím bất kỳ chỉ đánh thức.
+- **Ô HDMI:** khi thiết bị trên dock bắt đầu có tín hiệu, launcher báo một dòng nhỏ. Với `"preview": true` cho nguồn trên dock,
+  ô đang chọn phát hình trực tiếp sau khoảng một giây (TV chuyển hẳn nguồn nên có âm thanh); OK để xem toàn màn hình.
 - **Hàng ứng dụng bên dưới:** OK để mở. Ô thiết bị HDMI (nếu bật `dock`) chuyển sang nguồn đó; Back quay lại ô.
 - **Ô Ứng dụng (cuối hàng):** mở danh sách mọi ứng dụng TV đang có, xếp theo tên. OK để mở. Bấm **Sửa dock** để ghim:
   OK ghim hoặc bỏ ghim (dấu ✓ = đang ở màn hình chính, tối đa 12 ứng dụng), Back thoát chế độ ghim, Back lần nữa đóng thư viện.
