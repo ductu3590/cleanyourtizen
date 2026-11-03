@@ -97,6 +97,16 @@ Danh sách `--apps` là các App ID bạn chọn, theo thứ tự hiển thị. 
 
 Chỉ các nguồn liệt kê ở đây xuất hiện trong menu **Nguồn vào**. TV tự cung cấp tên thiết bị (ví dụ "PlayStation 4").
 
+Muốn thiết bị đó có **ô riêng trong hàng ứng dụng** (ví dụ máy PS4), thêm `"dock": true`. Mục `"label"` (không bắt buộc)
+thay tên TV báo bằng tên bạn đặt:
+
+```json
+"inputs": [{"type": "HDMI", "number": 4, "dock": true, "label": "PS4"}]
+```
+
+Ô hiện tên thiết bị, nhãn nhỏ `HDMI 4` và chấm xanh khi thiết bị đang có tín hiệu; khi không có tín hiệu ô mờ đi.
+Nút OK chuyển sang nguồn đó, nút Back quay lại đúng ô. Đổi vị trí ô trong **Cài đặt → Sắp xếp ứng dụng** như mọi ứng dụng.
+
 ## 8. (Không bắt buộc) Ảnh nền đổi mỗi ngày
 
 1. Chuẩn bị ảnh `jpg` hoặc `png`, **1920×1080**, mỗi ảnh tối đa 2,5 MB, tối đa 60 ảnh. Tên file chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới.
@@ -184,7 +194,7 @@ Nên bật chế độ **mở lại ứng dụng cuối cùng khi bật TV** (*A
   - **Nguồn vào:** chọn thiết bị HDMI (nút OK chuyển sang nguồn đó, nút Back quay về launcher).
   - **Wi-Fi:** tên mạng và độ mạnh tín hiệu.
   - **Cài đặt:** âm lượng (mũi tên trái/phải), tắt tiếng, hình nền, sắp xếp ứng dụng, Samsung Home.
-- **Hàng ứng dụng bên dưới:** OK để mở.
+- **Hàng ứng dụng bên dưới:** OK để mở. Ô thiết bị HDMI (nếu bật `dock`) chuyển sang nguồn đó; Back quay lại ô.
 - **Phía trên:** lời chào, ngày âm lịch và đếm ngược ngày lễ.
 - **Back** khi không mở menu nào: quay về Samsung Home (service nền tạm nghỉ 10 phút).
 

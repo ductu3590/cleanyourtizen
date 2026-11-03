@@ -18,7 +18,8 @@ Art Mode stay untouched.
 
 - Big clock and date, a time-of-day greeting, the Vietnamese lunar date and a one-line countdown to the next 2-3 holidays or family days.
 - A quick-access pill for **Input**, **Wi-Fi** and **Settings**, and a row of your favourite apps.
-- **Input switching** with the device names your TV reports (for example a game console on HDMI 4).
+- **Input switching** with the device names your TV reports (for example a game console on HDMI 4), and optional
+  dock tiles for inputs such as a PlayStation 4, with a quiet dot that shows whether the device has a signal.
 - **Wi-Fi** name and signal, **volume and mute**, and an app arrangement screen.
 - **Daily wallpaper** from your own images, with a quick picker that previews each one live.
 - Optional background service that brings the launcher back when Home is pressed, while leaving Art Mode, standby and running apps alone.
@@ -135,6 +136,9 @@ python -m cyt build --config .local/launcher.json --out dist/launcher-v1 --wallp
 Optional private settings in `.local/launcher.json`:
 
 - `"inputs": [{"type": "HDMI", "number": 4}]` lists the only inputs shown in the input menu. The TV supplies their names.
+  Add `"dock": true` to also show that input as a tile in the app row, for example
+  `{"type": "HDMI", "number": 4, "dock": true}`; an optional `"label": "PS4"` replaces the TV's name on the tile.
+  The tile is ordered with your apps in Settings → Sắp xếp ứng dụng, and Back returns to it from the input.
 - `"greetingName": "nhà An Bình"` adds a name to the time-of-day greeting.
 - `"events": [{"name": "Sinh nhật Bi", "month": 10, "day": 29}, {"name": "Giỗ ông", "month": 9, "day": 20, "lunar": true}]`
   adds private days to the countdown line, which shows the nearest 2-3 events (Vietnamese and international days built in)

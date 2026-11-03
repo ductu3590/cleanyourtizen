@@ -101,7 +101,67 @@ test('launcher input list is limited to the configured sources and Back leaves v
   assert.ok(app.includes('core.inputChoices(value, config.inputs)'));
   assert.ok(app.indexOf('if (videoOn) leaveVideo()') < app.indexOf('else returnHome()'));
   const cfg = fs.readFileSync(path.join(__dirname, '../launcher/config.js'), 'utf8');
-  assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4\}\]/);
+  assert.match(cfg, /inputs: \[\{type: 'HDMI', number: 4, dock: true, label: 'PlayStation 4'\}\]/);
+});
+
+test('dock inputs keep only sources pinned with dock: true and carry the TV source object', () => {
+  const ps4 = {type: 'HDMI', number: 4, editName: 'PlayStation 4'};
+  const soundbar = {type: 'HDMI', number: 3, editName: 'HW-Q6R Series'};
+  const allow = [{type: 'HDMI', number: 4, dock: true}, {type: 'HDMI', number: 3}];
+  const tiles = core.dockInputs(allow, {connected: [ps4], disconnected: [soundbar]});
+  assert.equal(tiles.length, 1);
+  assert.deepEqual({id: tiles[0].id, kind: tiles[0].kind, title: tiles[0].title, name: tiles[0].name, connected: tiles[0].connected},
+    {id: 'input:HDMI:4', kind: 'input', title: 'HDMI 4', name: 'PlayStation 4', connected: true});
+  assert.equal(tiles[0].choice.source, ps4);
+  assert.equal(core.dockInputs(allow, {disconnected: [ps4]})[0].connected, false);
+  // Before the TV answers (or in the desktop preview) the tile still exists, with unknown state.
+  const unknown = core.dockInputs(allow, null)[0];
+  assert.equal(unknown.name, 'HDMI 4'); assert.equal(unknown.connected, null); assert.equal(unknown.choice, null);
+});
+test('an owner label wins over the TV name; names are trimmed and bounded', () => {
+  const value = {connected: [{type: 'HDMI', number: 4, editName: '  PlayStation   4 '}]};
+  assert.equal(core.dockInputs([{type: 'HDMI', number: 4, dock: true}], value)[0].name, 'PlayStation 4');
+  assert.equal(core.dockInputs([{type: 'HDMI', number: 4, dock: true, label: 'PS4 của Bi'}], value)[0].name, 'PS4 của Bi');
+  assert.equal(core.dockInputs([{type: 'HDMI', number: 4, dock: true, label: '   '}], value)[0].name, 'PlayStation 4');
+  assert.equal(core.dockInputs([{type: 'HDMI', number: 4, dock: true, label: 'x'.repeat(80)}], null)[0].name.length, 32);
+  assert.equal(core.dockInputs([{type: 'HDMI', number: 4, dock: true, label: 7}], null)[0].name, 'HDMI 4');
+});
+test('dock inputs ignore malformed, duplicate or non-pinned entries', () => {
+  const bad = [null, 'HDMI', {type: 'HDMI', number: 4, dock: 'yes'}, {type: 'hdmi', number: 1, dock: true},
+    {type: 'HDMI', number: 0, dock: true}, {type: 'HDMI', number: 1.5, dock: true}, {type: 'HDMI', number: '2', dock: true},
+    {type: '<img>', number: 1, dock: true}, {type: 'HDMI', number: 100, dock: true}];
+  assert.deepEqual(core.dockInputs(bad, null), []);
+  assert.deepEqual(core.dockInputs(undefined, null), []);
+  assert.deepEqual(core.dockInputs({}, null), []);
+  const twice = core.dockInputs([{type: 'HDMI', number: 2, dock: true}, {type: 'HDMI', number: 2, dock: true, label: 'B'}], null);
+  assert.deepEqual(twice.map((tile) => tile.name), ['HDMI 2']);
+});
+test('input tiles share the saved dock order with apps', () => {
+  const tiles = [{id: 'a.App', name: 'A'}, {id: 'b.App', name: 'B'}].concat(core.dockInputs([{type: 'HDMI', number: 4, dock: true}], null));
+  assert.deepEqual(core.orderApps(tiles, []).map((tile) => tile.id), ['a.App', 'b.App', 'input:HDMI:4']);
+  assert.deepEqual(core.orderApps(tiles, ['input:HDMI:4', 'a.App']).map((tile) => tile.id), ['input:HDMI:4', 'a.App', 'b.App']);
+});
+test('consoles get the console glyph; other devices a plain input glyph', () => {
+  assert.equal(core.deviceStyle('PlayStation 4'), 'console playstation');
+  assert.equal(core.deviceStyle('PS4'), 'console playstation');
+  assert.equal(core.deviceStyle('Xbox Series X'), 'console');
+  assert.equal(core.deviceStyle('HW-Q6R Series'), 'device');
+  assert.equal(core.deviceStyle('HDMI 4'), 'device');
+  assert.equal(core.deviceStyle(undefined), 'device');
+});
+test('dock stays one row up to seven tiles, then wraps at seven', () => {
+  assert.deepEqual([0, 3, 5, 6, 7, 9].map(core.dockColumns), [5, 5, 5, 6, 7, 7]);
+  assert.equal(core.dockColumns('6'), 5);
+  const css = fs.readFileSync(path.join(__dirname, '../launcher/style.css'), 'utf8');
+  assert.ok(css.includes('.dock[data-cols="6"]') && css.includes('.dock[data-cols="7"]'));
+});
+test('input tiles read the TV sources again before switching and Back returns focus to the tile', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
+  assert.ok(app.includes('core.dockInputs(config.inputs, null)'));
+  assert.match(app, /function openInputTile\(tile, button\) \{\s*readSources\(function \(value\) \{\s*refreshInputs\(value\);\s*if \(tile\.choice\) \{ selectSource\(tile\.choice, button\);/);
+  assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-input'\);/);
+  assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\); \}/);
+  assert.ok(!app.includes('innerHTML'));
 });
 
 test('wallpaper changes once per local day, cycles through the list and is stable within a day', () => {

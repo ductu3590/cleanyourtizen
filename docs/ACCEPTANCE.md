@@ -19,6 +19,8 @@ Use exact model/firmware and a private session directory. These checks are separ
 - [ ] D-pad reaches every tile and toolbar action; OK opens the selected installed app.
 - [ ] Return provides escape to stock Home; physical Home still opens Samsung Home.
 - [ ] Shortcut order survives a launcher restart.
+- [ ] An input tile (`dock: true`) shows the TV's device name; its dot is green only while the device has a signal.
+- [ ] OK on the input tile shows the input; Back returns focus to that tile; the input menu still works.
 - [ ] Disconnected network/failed app launch leaves controls usable.
 - [ ] On The Frame, physically press Power into Art Mode; test leaving Art Mode again.
 - [ ] Native Art Mode image/brightness behavior remains normal. UI preview cannot prove this.
