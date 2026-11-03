@@ -8,6 +8,15 @@
 // Apps that only run while The Frame shows Art Mode (observed on QA55LS03B).
 var ART_SIGNALS = ['com.samsung.tv.wifi-motion-service-app'];
 
+// Some store entries are shortcuts to a differently named runtime process. YouTube is the one seen on
+// QA55LS03B: the launcher opens 9Ur5IzDKqV.TizenYouTube, but getAppsContext and cpu/running only show
+// Samsung's Cobalt YouTube process. Without this alias the service drops the follow immediately.
+var RUNTIME_ALIASES = {'9Ur5IzDKqV.TizenYouTube': ['com.samsung.tv.cobalt-yt']};
+
+function runtimeIds(appId) {
+  return [appId].concat(RUNTIME_ALIASES[appId] || []);
+}
+
 function decide(state) {
   if (state.powerState && state.powerState !== 'on') return 'tv-not-on';
   if (state.launcherVisible) return 'already-visible';
@@ -25,10 +34,10 @@ function isRunning(running, context) { return running.indexOf(String(context.id)
 // What the followed app and Samsung Home are doing; null when the cgroup cannot be read.
 function frontOf(contexts, running, appId, homeId) {
   if (!running) return null;
-  var state = {home: false, app: 'gone'};
+  var state = {home: false, app: 'gone'}, ids = runtimeIds(appId);
   contexts.forEach(function (context) {
     if (context.appId === homeId && isRunning(running, context)) state.home = true;
-    if (context.appId === appId) state.app = isRunning(running, context) || state.app === 'running' ? 'running' : 'background';
+    if (ids.indexOf(context.appId) >= 0) state.app = isRunning(running, context) || state.app === 'running' ? 'running' : 'background';
   });
   return state;
 }
@@ -122,4 +131,4 @@ function readCommand(appControl) {
 }
 
 module.exports = {createWatcher: createWatcher, decide: decide, readCommand: readCommand, frontOf: frontOf,
-  otherInFront: otherInFront, ART_SIGNALS: ART_SIGNALS};
+  otherInFront: otherInFront, runtimeIds: runtimeIds, RUNTIME_ALIASES: RUNTIME_ALIASES, ART_SIGNALS: ART_SIGNALS};

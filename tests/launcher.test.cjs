@@ -396,6 +396,13 @@ test('Samsung Home in cpu/running is read as Home pressed over the followed app'
   assert.deepEqual(watch.frontOf(CTX,['1137'],'IkWsFHtOY9.Stremio','com.samsung.tv.csfs'),{home:false,app:'gone'});
   assert.equal(watch.frontOf(CTX,null,APP,'com.samsung.tv.csfs'),null);
 });
+test('YouTube is followed through its Cobalt runtime process', () => {
+  const youtube='9Ur5IzDKqV.TizenYouTube';
+  assert.deepEqual(watch.runtimeIds(youtube),[youtube,'com.samsung.tv.cobalt-yt']);
+  assert.deepEqual(watch.frontOf(CTX,['1137','24674'],youtube,'com.samsung.tv.csfs'),{home:false,app:'running'});
+  assert.deepEqual(watch.frontOf(CTX,['407','1137','24674'],youtube,'com.samsung.tv.csfs'),{home:true,app:'running'});
+  assert.deepEqual(watch.frontOf(CTX,['1137'],youtube,'com.samsung.tv.csfs'),{home:false,app:'background'});
+});
 test('a media app in front blocks the relaunch unless Samsung Home covers it', () => {
   const other=(running)=>watch.otherInFront(CTX,running,'com.samsung.tv.csfs','CyTizen001.Home');
   assert.equal(other(['1137','24674']),'com.samsung.tv.cobalt-yt'); // YouTube cast over the launcher

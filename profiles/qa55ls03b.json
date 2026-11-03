@@ -23,7 +23,8 @@
     "restVisibility": "127.0.0.1:8001/api/v2/applications/<id> reports store apps only; YouTube (cobalt), FPT Play and Stremio always visible:false, Nuvio TV reports correctly",
     "artSignalDelay": "wifi-motion-service-app appears ~220-370 ms after the launcher is hidden; delayMs must stay >= 300",
     "cpuCgroups": "verified 2026-10-27: /sys/fs/cgroup/cpu/running and /background cgroup.procs are readable by a web service; the on-screen app is in running; Home over FPT Play or Stremio moves com.samsung.tv.csfs into running while the app stays there; /proc/<pid> of other apps is EACCES",
-    "homeFromApps": "verified 2026-10-27 by owner: Home inside FPT Play and Stremio returns to the launcher; Art Mode from an app is left alone",
+    "runtimeAliases": "verified 2026-11-03: 9Ur5IzDKqV.TizenYouTube launches Samsung's Cobalt process com.samsung.tv.cobalt-yt; FPT Play, Stremio, Nuvio, Netflix and the other tested store apps keep their own ID in getAppsContext",
+    "homeFromApps": "verified 2026-10-27 by owner for FPT Play and Stremio; verified 2026-11-03 with an automated Home simulation for FPT Play, Stremio, Nuvio, YouTube (Cobalt alias), Netflix, Galaxy Play, VTV Giai Tri, VTVcab ON, VieON, TV360, Internet, Samsung Internet, Gaming Hub, Apps store, e-Manual, Security Center and Privacy Choices; Art Mode from an app is left alone",
     "knownGaps": ["cold boot needs Autorun Last App; on-boot is not available"]
   },
   "artModeRequired": true,
