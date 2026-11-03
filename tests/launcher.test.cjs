@@ -159,7 +159,8 @@ test('input tiles read the TV sources again before switching and Back returns fo
   const app = fs.readFileSync(path.join(__dirname, '../launcher/app.js'), 'utf8');
   assert.ok(app.includes('core.dockInputs(config.inputs, null)'));
   assert.match(app, /function openInputTile\(tile, button\) \{\s*readSources\(function \(value\) \{\s*refreshInputs\(value\);\s*if \(tile\.choice\) \{ selectSource\(tile\.choice, button\);/);
-  assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-input'\);/);
+  // Back from video returns to the dock tile that started it, else to the control center button.
+  assert.match(app, /var back = videoReturn && videoReturn\.parentNode \? videoReturn : \$\('btn-controls'\);/);
   assert.match(app, /function tick\(\) \{ clock\(\); readWifi\(\); wallpaper\(\); readInputs\(\); \}/);
   assert.ok(!app.includes('innerHTML'));
 });

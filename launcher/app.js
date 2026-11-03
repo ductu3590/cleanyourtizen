@@ -1,13 +1,15 @@
 (function () {
   'use strict';
   var config = window.CYT_CONFIG, core = window.CytCore, calendar = window.CytCalendar, tv = window.tizen;
+  var controls = window.CytControls;
   var $ = function (id) { return document.getElementById(id); };
   var dock = $('dock'), panel = $('panel'), message = $('message'), home = $('home');
   var menu = $('menu'), menuItems = $('menu-items'), caption = $('caption');
-  var pill = [$('btn-input'), $('btn-wifi'), $('btn-settings')];
-  var CAPTIONS = {input: 'Nguồn vào', wifi: 'Wi-Fi', settings: 'Cài đặt'};
+  // The control center button: the one control at the top right. Its panel (#menu) holds input, sound, Wi-Fi and settings.
+  var centerButton = $('btn-controls');
   var MAIN_RECT = ['0px', '0px', '1920px', '1080px'];
   var timer, saved = [], openMenu = null, videoOn = false, clockTimer = null, picking = false, pickerBack = null;
+  var subBack = null, slideTimer = null;
   var videoReturn = null, preference = 'auto';
   try { preference = localStorage.getItem('cyt-wallpaper') || 'auto'; } catch (error) { preference = 'auto'; }
   try { saved = JSON.parse(localStorage.getItem('cyt-order') || '[]'); } catch (error) { saved = []; }
@@ -66,7 +68,7 @@
     if (!tv || !tv.systeminfo) { if (done) done(); return; }
     try {
       tv.systeminfo.getPropertyValue('WIFI_NETWORK', function (value) {
-        wifi = core.wifiInfo(value); $('btn-wifi').setAttribute('data-bars', String(wifi.bars)); if (done) done();
+        wifi = core.wifiInfo(value); $('wifi-status').setAttribute('data-bars', String(wifi.bars)); if (done) done();
       }, function () { if (done) done(); });
     } catch (error) { if (done) done(); }
   }
@@ -81,7 +83,9 @@
   function volume() { try { return audio().getVolume(); } catch (error) { return null; } }
   function muted() { try { return !!audio().isMute(); } catch (error) { return false; } }
 
-  // ---- Menu ----
+  // ---- Control center ----
+  // One panel that slides in from the right (#menu). Its rows are built in buildControls(); About is a sub-view of it.
+  var MAIN_HINT = 'OK để chọn  ·  Back để đóng';
   function row(label, value, onActivate, options) {
     var button = document.createElement('button'); button.className = 'row'; button.setAttribute('role', 'menuitem');
     var left = document.createElement('span');
@@ -93,24 +97,67 @@
     var right = document.createElement('span'); right.className = 'value'; right.textContent = value || '';
     button.appendChild(right);
     if (options && options.adjust) button.setAttribute('data-adjust', options.adjust);
+    // Information rows (Wi-Fi, About) still take focus, like every row, but nothing happens on OK.
+    if (options && options.info) button.className += ' info';
     if (!onActivate) button.setAttribute('aria-disabled', 'true');
     else button.addEventListener('click', onActivate);
+    button.addEventListener('focus', function () { keepVisible(button); });
     menuItems.appendChild(button);
     return {button: button, value: right};
   }
+  // A quiet section label, a thin divider and a closing note. None of them takes focus.
+  function heading(text) { var title = document.createElement('p'); title.className = 'row-heading'; title.textContent = text; menuItems.appendChild(title); }
+  function divider() { var line = document.createElement('hr'); line.className = 'row-divider'; menuItems.appendChild(line); }
+  function note(text) { var line = document.createElement('p'); line.className = 'row-note'; line.textContent = text; menuItems.appendChild(line); }
+  function menuRows() { return Array.prototype.slice.call(menuItems.querySelectorAll('.row')); }
+  // Scroll the row list itself (never the page), in case a TV shows more rows than fit.
+  function keepVisible(button) {
+    var top = button.offsetTop, bottom = top + button.offsetHeight;
+    if (top < menuItems.scrollTop) menuItems.scrollTop = top;
+    else if (bottom > menuItems.scrollTop + menuItems.clientHeight) menuItems.scrollTop = bottom - menuItems.clientHeight;
+  }
+  function slideMenu(open) {
+    clearTimeout(slideTimer);
+    if (open) { menu.hidden = false; void menu.offsetWidth; menu.classList.add('open'); return; }
+    menu.classList.remove('open');
+    // Hide after the slide-out, so the off-screen rows can never take focus.
+    slideTimer = setTimeout(function () { if (!openMenu) menu.hidden = true; }, 450);
+  }
   function setMenuOpen(name) {
-    openMenu = name;
+    var was = openMenu;
+    openMenu = name; subBack = null;
     document.body.classList.toggle('menu-open', !!name);
-    pill.forEach(function (button) { button.classList.toggle('active', button.getAttribute('data-menu') === name); });
-    menu.hidden = !name;
+    centerButton.classList.toggle('active', !!name);
+    centerButton.setAttribute('aria-expanded', name ? 'true' : 'false');
+    if (!name !== !was) slideMenu(!!name);
   }
   function closeMenu() {
     var name = openMenu; setMenuOpen(null);
-    if (name) $('btn-' + name).focus();
+    if (name) centerButton.focus();
   }
-  function focusFirstRow() { var first = menuItems.firstChild; if (first) first.focus(); }
+  function focusFirstRow() { var first = menuRows()[0]; if (first) first.focus(); }
+  function enterRows() { menuItems.classList.remove('enter'); void menuItems.offsetWidth; menuItems.classList.add('enter'); }
   function showMenu(name, title, build) {
-    menuItems.textContent = ''; $('menu-title').textContent = title; build(); setMenuOpen(name); focusFirstRow();
+    menuItems.textContent = ''; menuItems.scrollTop = 0; menu.classList.remove('sub');
+    $('menu-title').textContent = title; $('menu-hint').textContent = MAIN_HINT;
+    build(); setMenuOpen(name); focusFirstRow();
+  }
+  // A view inside the panel, such as Giới thiệu. The panel rows wait aside; Back puts them back on the row that opened it.
+  function openSubView(title, build) {
+    var from = document.activeElement, rows = document.createDocumentFragment(), mainTitle = $('menu-title').textContent;
+    while (menuItems.firstChild) rows.appendChild(menuItems.firstChild);
+    $('menu-title').textContent = title; $('menu-hint').textContent = 'Back để quay lại'; menu.classList.add('sub');
+    build(); menuItems.scrollTop = 0; enterRows(); focusFirstRow();
+    subBack = function () {
+      menuItems.textContent = ''; menuItems.appendChild(rows); menu.classList.remove('sub');
+      $('menu-title').textContent = mainTitle; $('menu-hint').textContent = MAIN_HINT; enterRows();
+      if (from && from.parentNode) from.focus(); else focusFirstRow();
+    };
+  }
+  // Back inside the panel: leave a sub-view first, then close the panel and return to the control center button.
+  function menuBack() {
+    if (subBack) { var back = subBack; subBack = null; back(); return; }
+    closeMenu();
   }
   function enterVideo(choice) {
     return function () {
@@ -131,7 +178,7 @@
   function leaveVideo() {
     hideVideo(function () {
       document.documentElement.classList.remove('video'); document.body.classList.remove('video');
-      var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-input');
+      var back = videoReturn && videoReturn.parentNode ? videoReturn : $('btn-controls');
       videoReturn = null; back.focus();
     });
   }
@@ -142,39 +189,48 @@
         function () { selectSource(choice); }, {dot: choice.connected});
     });
   }
-  function openInput() {
+  // Read the sources and Wi-Fi first, so the panel opens complete and focus lands once.
+  function openControls() {
     readSources(function (value) {
-      showMenu('input', 'Nguồn vào', function () { buildInput(core.inputChoices(value, config.inputs)); });
+      readWifi(function () { showMenu('controls', 'Điều khiển', function () { buildControls(value); }); });
     });
   }
-  function openWifi() {
-    readWifi(function () {
-      showMenu('wifi', 'Wi-Fi', function () {
-        if (!wifi.on) { row('Wi-Fi', 'Đang tắt hoặc chưa kết nối', null); return; }
-        row('Mạng', wifi.ssid, null); row('Tín hiệu', wifi.percent + '%', null);
+  // Every row of the control center, top to bottom. Add a row with row(label, value, onActivate, options) where it belongs.
+  function buildControls(value) {
+    heading('Nguồn vào');
+    buildInput(core.inputChoices(value, config.inputs));
+    divider();
+    var current = volume();
+    var volumeRow = row('Âm lượng', current === null ? 'Không điều khiển được' : '‹  ' + current + '  ›', null, {adjust: 'volume'});
+    volumeRow.button.removeAttribute('aria-disabled');
+    if (current === null) volumeRow.button.setAttribute('aria-disabled', 'true');
+    var muteRow = row('Tắt tiếng', muted() ? 'Bật' : 'Tắt', function () {
+      try { audio().setMute(!muted()); muteRow.value.textContent = muted() ? 'Bật' : 'Tắt'; }
+      catch (error) { announce('Không điều khiển được âm thanh.'); }
+    });
+    divider();
+    row('Wi-Fi', wifi.on ? wifi.ssid + '  ·  ' + wifi.percent + '%' : 'Đang tắt hoặc chưa kết nối', null, {info: true});
+    divider();
+    if ((config.wallpapers || []).length) {
+      row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
+    }
+    row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
+    divider();
+    row('Giới thiệu', '›', openAbout);
+    row('Samsung Home', '↗', returnHome);
+  }
+  // Giới thiệu: read-only facts. TV values come from systeminfo; version and service mode from the built page config.
+  function openAbout() {
+    controls.readAbout(tv, function (system) {
+      if (openMenu !== 'controls' || subBack) return; // the panel closed while the TV answered
+      var apps = tiles.filter(function (tile) { return tile.kind !== 'input'; }).length;
+      system.version = config.version; system.serviceMode = config.serviceMode;
+      system.dockApps = apps; system.dockInputs = tiles.length - apps;
+      openSubView('Giới thiệu', function () {
+        controls.aboutRows(system).forEach(function (line) { row(line[0], line[1], null, {info: true}); });
+        note(controls.NOTE);
       });
-    });
-  }
-  function openSettings() {
-    showMenu('settings', 'Cài đặt', function () {
-      var current = volume();
-      var volumeRow = row('Âm lượng', current === null ? 'Không điều khiển được' : '‹  ' + current + '  ›', null, {adjust: 'volume'});
-      volumeRow.button.removeAttribute('aria-disabled');
-      if (current === null) volumeRow.button.setAttribute('aria-disabled', 'true');
-      var muteRow = row('Tắt tiếng', muted() ? 'Bật' : 'Tắt', function () {
-        try { audio().setMute(!muted()); muteRow.value.textContent = muted() ? 'Bật' : 'Tắt'; }
-        catch (error) { announce('Không điều khiển được âm thanh.'); }
-      });
-      if ((config.wallpapers || []).length) {
-        row('Hình nền', wallpaperName(preference) + '  ›', function () { setMenuOpen(null); openPicker(); });
-      }
-      row('Sắp xếp ứng dụng', '›', function () { setMenuOpen(null); openPanel(); });
-      row('Samsung Home', '↗', returnHome);
-    });
-  }
-  function toggleMenu(name) {
-    if (openMenu === name) { closeMenu(); return; }
-    if (name === 'input') openInput(); else if (name === 'wifi') openWifi(); else openSettings();
+    }, 1500);
   }
   function adjustVolume(key, target) {
     var current = volume();
@@ -244,7 +300,7 @@
     readSources(function (value) {
       refreshInputs(value);
       if (tile.choice) { selectSource(tile.choice, button); return; }
-      announce(tv ? 'TV chưa báo nguồn ' + tile.title + '. Thử lại bằng nút Nguồn vào.' : 'Bản xem trước · ' + tile.name + ' (' + tile.title + ')');
+      announce(tv ? 'TV chưa báo nguồn ' + tile.title + '. Thử lại trong Điều khiển › Nguồn vào.' : 'Bản xem trước · ' + tile.name + ' (' + tile.title + ')');
     });
   }
   function render() {
@@ -371,7 +427,7 @@
     closeLibrary();
   }
   $('library-edit').addEventListener('click', function () { editing = !editing; libraryHint(); });
-  function closePanel() { panel.hidden = true; home.hidden = false; $('btn-settings').focus(); }
+  function closePanel() { panel.hidden = true; home.hidden = false; centerButton.focus(); }
   function openPanel() {
     var target = $('arrange'); target.textContent = '';
     tiles.forEach(function (app, index) {
@@ -389,11 +445,9 @@
   }
 
   // ---- Wiring ----
-  pill.forEach(function (button) {
-    button.addEventListener('click', function () { toggleMenu(button.getAttribute('data-menu')); });
-    button.addEventListener('focus', function () { caption.textContent = CAPTIONS[button.getAttribute('data-menu')]; });
-    button.addEventListener('blur', function () { caption.textContent = ''; });
-  });
+  centerButton.addEventListener('click', function () { if (openMenu) closeMenu(); else openControls(); });
+  centerButton.addEventListener('focus', function () { caption.textContent = 'Điều khiển'; });
+  centerButton.addEventListener('blur', function () { caption.textContent = ''; });
   $('close-panel').addEventListener('click', closePanel);
 
   // Move focus, or at an edge nudge the focused item toward the key so the press is never silent.
@@ -413,7 +467,7 @@
     }
   });
   function focusRows() {
-    var rows = [pill], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
+    var rows = [[centerButton]], buttons = Array.prototype.slice.call(dock.children), cols = core.dockColumns(buttons.length);
     for (var start = 0; start < buttons.length; start += cols) rows.push(buttons.slice(start, start + cols));
     return rows;
   }
@@ -426,7 +480,7 @@
       else if (picking) pickerBack();
       else if (libraryOpen) libraryBack();
       else if (!panel.hidden) closePanel();
-      else if (openMenu) closeMenu();
+      else if (openMenu) menuBack();
       else returnHome();
       return;
     }
@@ -453,7 +507,7 @@
       return;
     }
     if (openMenu) {
-      var rows = Array.prototype.slice.call(menuItems.children), at = rows.indexOf(document.activeElement);
+      var rows = menuRows(), at = rows.indexOf(document.activeElement);
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
         if (at >= 0 && rows[at].getAttribute('data-adjust') === 'volume') adjustVolume(key, rows[at]);
         return;
@@ -495,7 +549,7 @@
   }
   function closePicker() {
     picking = false; $('picker').hidden = true; document.body.classList.remove('picking');
-    $('btn-settings').focus();
+    centerButton.focus();
   }
   function openPicker() {
     var names = config.wallpapers || [], grid = $('picker-grid'), previous = shownWallpaper;
@@ -528,5 +582,5 @@
   clock(); readWifi(); wallpaper(); clockTimer = setInterval(tick, 30000);
   if (!tv) $('mode').textContent = 'BẢN XEM TRƯỚC TRÊN MÁY TÍNH · KHÔNG THAY ĐỔI TV';
   core.tellService(tv, config.serviceId, 'resume', function () {});
-  render(); readInputs(); (dock.firstChild || $('btn-settings')).focus();
+  render(); readInputs(); (dock.firstChild || centerButton).focus();
 }());
