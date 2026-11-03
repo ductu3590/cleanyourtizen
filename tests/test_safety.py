@@ -321,6 +321,29 @@ class BuildTests(unittest.TestCase):
         self.assertIn('"serviceId": "CyTizen001.Service"', page)
         self.assertIsNone(settings['reportUrl'])
 
+    def test_page_config_carries_version_and_service_mode_for_about_but_never_the_report_url(self):
+        config = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
+        guard = {'version': '0.2.3', 'service': {'mode': 'guard', 'reportUrl': 'http://192.168.1.71:8765/log'}}
+        for extra, version, mode in (({}, '0.1.0', 'observe'), (guard, '0.2.3', 'guard')):
+            with tempfile.TemporaryDirectory() as directory:
+                widget = build(dict(config, **extra), Path(directory) / 'stage')
+                with zipfile.ZipFile(widget) as archive:
+                    text = archive.read('config.js').decode()
+                    manifest = archive.read('config.xml').decode()
+                    settings = json.loads(archive.read('service/config.json'))
+                    self.assertIn('controls.js', archive.namelist())
+            page = json.loads(text[text.index('{'):text.rindex('}') + 1])
+            self.assertEqual(page['version'], version)
+            self.assertIn('version="%s"' % version, manifest)
+            self.assertEqual(page['serviceMode'], mode)
+            self.assertEqual(settings['mode'], mode)
+            # The diagnostic report URL lives only in service/config.json, never in the page.
+            self.assertNotIn('service', page)
+            self.assertNotIn('reportUrl', page)
+            self.assertNotIn('reportUrl', text)
+            self.assertNotIn('192.168.1.71', text)
+        self.assertEqual(settings['reportUrl'], 'http://192.168.1.71:8765/log')
+
     def test_service_settings_refuse_unsafe_values(self):
         from cyt.cli import service_settings
         base = core.launcher_config(snap(), ['ZTpEFWgfa9.FPTPlay'], 'CyTizen001', 'Test')
