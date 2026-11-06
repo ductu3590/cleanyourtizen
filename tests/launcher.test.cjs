@@ -309,6 +309,67 @@ test('Art Mode, standby or an already visible launcher are left alone', () => {
     assert.deepEqual(state.launched,[],JSON.stringify(tv));
   }
 });
+test('the TV art status overrides a stale motion process, in both directions', () => {
+  const stale={powerState:'on',launcherVisible:false,contexts:watch.ART_SIGNALS};
+  assert.equal(watch.decide({...stale,artMode:false}),'launch'); // QA55LS03B .131: process never exits
+  assert.equal(watch.decide({...HOME,artMode:true}),'art-mode');
+  assert.equal(watch.decide({...stale,artMode:null}),'art-mode'); // unknown: keep the old, safe signal
+});
+test('Art Mode counts as on when the status says so or the art app is on screen', () => {
+  const contexts=[{appId:'org.tizen.art-app',id:425},{appId:'org.tizen.art-app',id:23436}];
+  assert.equal(watch.artInFront(contexts,['23436']),true);
+  assert.equal(watch.artInFront(contexts,['1083']),false);
+  assert.equal(watch.artInFront(contexts,null),null);
+  assert.equal(watch.artMode('on',false),true);
+  assert.equal(watch.artMode(null,true),true);
+  assert.equal(watch.artMode('off',true),true); // leaving or entering Art Mode: stay out of the way
+  assert.equal(watch.artMode('off',false),false);
+  // A busy TV can miss the status: the art app is the first thing to move, so its absence is enough.
+  assert.equal(watch.artMode(null,false),false);
+  assert.equal(watch.artMode(null,null),null);
+});
+test('art status replies are read from the d2d message, anything else is ignored', () => {
+  const reply=JSON.stringify({event:'d2d_service_message',data:JSON.stringify({event:'get_artmode_status',value:'off'})});
+  assert.equal(watch.parseArtStatus(reply),'off');
+  assert.equal(watch.parseArtStatus(JSON.stringify({event:'d2d_service_message',data:JSON.stringify({event:'image_selected'})})),null);
+  assert.equal(watch.parseArtStatus(JSON.stringify({event:'art_app_request',data:'{}'})),null);
+  assert.equal(watch.parseArtStatus('not json'),null);
+});
+const artStatus = require('../launcher/service/artstatus.js');
+function fakeArtChannel(onFrame) {
+  return new Promise(resolve=>{
+    const server=require('node:net').createServer(socket=>{
+      socket.on('error',()=>{});
+      let upgraded=false;
+      const send=text=>{const body=Buffer.from(text);
+        const head=body.length<126?Buffer.from([0x81,body.length]):Buffer.from([0x81,126,body.length>>8,body.length&255]);
+        socket.write(Buffer.concat([head,body]));};
+      socket.on('data',chunk=>{
+        if(!upgraded){upgraded=true;socket.write('HTTP/1.1 101 Switching Protocols\r\n\r\n');send('{"data":{},"event":"ms.channel.ready"}');return;}
+        const len=chunk[1]&127,off=len===126?4:2,mask=chunk.slice(off,off+4),body=chunk.slice(off+4);
+        onFrame(JSON.parse(Buffer.from(body.map((b,i)=>b^mask[i%4])).toString()),send);
+      });
+    });
+    server.listen(0,'127.0.0.1',()=>resolve(server));
+  });
+}
+test('reads the art status over the local channel', async () => {
+  let asked=null;
+  const server=await fakeArtChannel((message,send)=>{asked=message;
+    send(JSON.stringify({event:'d2d_service_message',data:JSON.stringify({event:'get_artmode_status',value:'on'})}));});
+  const value=await new Promise(done=>artStatus.read(done,{port:server.address().port}));
+  server.close();
+  assert.equal(value,'on');
+  assert.equal(asked.params.to,'broadcast'); // the Art host ignores `to: host` from a local client
+  assert.equal(JSON.parse(asked.params.data).request,'get_artmode_status');
+});
+test('art status gives up quietly when nothing answers', async () => {
+  const server=await fakeArtChannel(()=>{});
+  const value=await new Promise(done=>artStatus.read(done,{port:server.address().port,timeoutMs:50}));
+  server.close();
+  assert.equal(value,null);
+  assert.equal(await new Promise(done=>artStatus.read(done,{port:1,timeoutMs:50})),null);
+});
 test('unknown TV state does not block the launcher', () => {
   assert.equal(watch.decide({powerState:null,launcherVisible:false,contexts:[]}),'launch');
 });
@@ -358,6 +419,19 @@ function following(fronts, tv) {
   g.watcher.command('ui-hidden');
   return g;
 }
+test('an app that takes a while to start is still followed', () => {
+  const GONE={home:false,app:'gone'};
+  const {state}=following([GONE,GONE,GONE,IN_APP,HOME_OVER_APP]);
+  for (let tick=0;tick<4;tick+=1) { state.time+=1000; state.fire(); }
+  assert.ok(state.timers.filter(Boolean).length,'still polling once the app showed up');
+  state.fire(); state.fire();
+  assert.deepEqual(state.launched,['CyTizen001.Home']);
+});
+test('an app that never starts stops being followed', () => {
+  const {state}=following(Array(40).fill({home:false,app:'gone'}));
+  for (let tick=0;tick<32;tick+=1) { state.time+=1000; state.fire(); }
+  assert.deepEqual(state.timers.filter(Boolean),[]);
+});
 test('Home pressed inside a followed app returns to the launcher', () => {
   const {state}=following([IN_APP,IN_APP,HOME_OVER_APP]);
   state.fire(); state.fire(); assert.deepEqual(state.launched,[]);
@@ -367,7 +441,7 @@ test('Home pressed inside a followed app returns to the launcher', () => {
 test('a followed app is followed while it runs, and dropped when it exits or the TV state is unreadable', () => {
   const g=following([]); for (let i=0;i<100;i+=1) { g.state.time+=60000; g.state.fire(); }
   assert.equal(g.state.timers.filter(Boolean).length,1); // still following after 100 minutes in the app
-  const gone=following([{home:false,app:'gone'}]); gone.state.fire();
+  const gone=following([IN_APP,{home:false,app:'gone'}]); gone.state.fire(); gone.state.fire();
   assert.deepEqual(gone.state.timers.filter(Boolean),[]); assert.deepEqual(gone.state.launched,[]);
   const unknown=following([null,null]); unknown.state.fire(); unknown.state.time+=31000; unknown.state.fire();
   assert.deepEqual(unknown.state.timers.filter(Boolean),[]); assert.deepEqual(unknown.state.launched,[]);

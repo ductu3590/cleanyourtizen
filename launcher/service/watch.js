@@ -5,8 +5,12 @@
 // cpu/running when Home is pressed over an app, even when the app itself never reports `visible`.
 'use strict';
 
-// Apps that only run while The Frame shows Art Mode (observed on QA55LS03B).
+// Fallback only, for when the TV gives no art status: apps that usually run only while The Frame shows
+// Art Mode. Not reliable alone: on one QA55LS03B this process stays up all the time, Samsung Home included.
 var ART_SIGNALS = ['com.samsung.tv.wifi-motion-service-app'];
+// Shows the art. Pressing Power puts it in cpu/running before the launcher is hidden; it stays in the
+// background under Samsung Home.
+var ART_APP = 'org.tizen.art-app';
 
 // Some store entries are shortcuts to a differently named runtime process. YouTube is the one seen on
 // QA55LS03B: the launcher opens 9Ur5IzDKqV.TizenYouTube, but getAppsContext and cpu/running only show
@@ -21,6 +25,8 @@ function decide(state) {
   if (state.powerState && state.powerState !== 'on') return 'tv-not-on';
   if (state.launcherVisible) return 'already-visible';
   if (state.otherVisible) return 'app-visible'; // e.g. YouTube cast from a phone
+  if (state.artMode === true) return 'art-mode';
+  if (state.artMode === false) return 'launch';
   var running = state.contexts || [];
   for (var index = 0; index < ART_SIGNALS.length; index += 1) {
     if (running.indexOf(ART_SIGNALS[index]) >= 0) return 'art-mode';
@@ -30,6 +36,29 @@ function decide(state) {
 
 // running: PIDs listed in /sys/fs/cgroup/cpu/running (null when unreadable); contexts: [{appId, id: pid}].
 function isRunning(running, context) { return running.indexOf(String(context.id)) >= 0; }
+
+// true, false, or null when the cgroup cannot be read.
+function artInFront(contexts, running) {
+  if (!running) return null;
+  return contexts.some(function (context) { return context.appId === ART_APP && isRunning(running, context); });
+}
+
+// status: 'on', 'off' or null from the TV, which can miss its deadline while apps are switching.
+// Returns null when neither source can tell.
+function artMode(status, inFront) {
+  if (status === 'on' || inFront === true) return true;
+  return status === 'off' || inFront === false ? false : null;
+}
+
+// The value of a get_artmode_status reply on the art channel, or null for any other message.
+function parseArtStatus(text) {
+  try {
+    var message = JSON.parse(text);
+    if (message.event !== 'd2d_service_message') return null;
+    var data = JSON.parse(message.data);
+    return data.event === 'get_artmode_status' && (data.value === 'on' || data.value === 'off') ? data.value : null;
+  } catch (error) { return null; }
+}
 
 // What the followed app and Samsung Home are doing; null when the cgroup cannot be read.
 function frontOf(contexts, running, appId, homeId) {
@@ -74,7 +103,7 @@ function createWatcher(options) {
     options.inspect(function (state) {
       var verdict = options.mode === 'guard' ? decide(state) : 'observe-only';
       report('decision', {verdict: verdict, powerState: state.powerState, launcherVisible: state.launcherVisible,
-        otherVisible: state.otherVisible});
+        otherVisible: state.otherVisible, artMode: state.artMode});
       if (verdict === 'launch') { lastLaunch = now(); options.launch(options.launcherId); }
       // Art Mode can last hours: keep waiting for the app to come back instead of giving up after followStartMs.
       else if (appId && (verdict === 'art-mode' || verdict === 'tv-not-on')) startFollow(appId, true);
@@ -82,7 +111,8 @@ function createWatcher(options) {
   }
   function schedule(appId) { cancel(); pending = options.setTimer(function () { check(appId); }, delayMs); }
   function startFollow(id, patient) {
-    var current = follow = {id: id, since: patient ? Infinity : now(), timer: null};
+    // seen: the app showed up in the contexts. A slow app can take seconds to get there after opened-app.
+    var current = follow = {id: id, since: patient ? Infinity : now(), seen: !!patient, timer: null};
     current.timer = options.setTimer(function () { tick(current); }, pollMs);
   }
   // Polls what is in front while a launched app runs; Samsung Home in front means Home was pressed.
@@ -91,9 +121,11 @@ function createWatcher(options) {
     options.front(current.id, function (front) {
       if (follow !== current) return; // stopped or replaced while the request was in flight
       if (front && front.home) { stopFollow(); report('app-left', current.id); schedule(current.id); return; }
-      if (front && front.app === 'gone') { stopFollow(); report('follow-stopped', current.id); return; }
-      if (front) current.since = Math.max(current.since, now()); // known state: keep following
-      else if (now() - current.since > followStartMs) { stopFollow(); report('follow-stopped', current.id); return; }
+      var starting = front && front.app === 'gone' && !current.seen;
+      if ((front && front.app === 'gone' && current.seen) || ((!front || starting) && now() - current.since > followStartMs)) {
+        stopFollow(); report('follow-stopped', current.id); return;
+      }
+      if (front && !starting) { current.seen = true; current.since = Math.max(current.since, now()); } // known state: keep following
       current.timer = options.setTimer(function () { tick(current); }, pollMs);
     });
   }
@@ -131,4 +163,4 @@ function readCommand(appControl) {
 }
 
 module.exports = {createWatcher: createWatcher, decide: decide, readCommand: readCommand, frontOf: frontOf,
-  otherInFront: otherInFront, runtimeIds: runtimeIds, RUNTIME_ALIASES: RUNTIME_ALIASES, ART_SIGNALS: ART_SIGNALS};
+  artInFront: artInFront, artMode: artMode, parseArtStatus: parseArtStatus, otherInFront: otherInFront, runtimeIds: runtimeIds, RUNTIME_ALIASES: RUNTIME_ALIASES, ART_SIGNALS: ART_SIGNALS};

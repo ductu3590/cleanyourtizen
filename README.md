@@ -195,7 +195,8 @@ launcher JSON:
 The default `observe` mode never launches anything. In `guard` mode the launcher page tells the service
 when it is hidden; after `delayMs` (default 2.5 s, minimum 0.3 s) the service reads the TV's own REST API
 on `127.0.0.1:8001`, running app contexts and `/sys/fs/cgroup/cpu/running` (the CPU cgroup in which
-the TV keeps what is on screen), then reopens the launcher unless the TV is not `on`, Art Mode is running,
+the TV keeps what is on screen), asks the TV's local art channel whether Art Mode is on, then reopens the
+launcher unless the TV is not `on`, Art Mode is on or the art app is on screen,
 the launcher is visible again, or a media app is in front (for example YouTube cast from a phone).
 Apps opened from the launcher are followed while they run: when Samsung Home enters `cpu/running`
 (Home pressed inside the app), the launcher returns after the same delay. **Samsung Home ↗** and Back

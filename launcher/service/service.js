@@ -4,6 +4,7 @@
 'use strict';
 var http = require('http');
 var watch = require('./watch.js');
+var artStatus = require('./artstatus.js');
 var settings = require('./config.json');
 var watcher;
 
@@ -44,20 +45,34 @@ function anyVisible(ids, done) {
 }
 
 function inspect(done) {
+  var art = {finished: false, status: null, waiting: null};
+  // Runs alongside the requests below: a busy TV takes about a second to answer each of them.
+  artStatus.read(function (status) {
+    art.finished = true; art.status = status;
+    if (art.waiting) art.waiting();
+  });
   localJson('/api/v2/', function (info) {
     localJson('/api/v2/applications/' + settings.launcherId, function (launcher) {
       var state = {powerState: info && info.device ? info.device.PowerState : null,
         launcherVisible: !!(launcher && launcher.visible), contexts: [], otherVisible: null};
       function withContexts(contexts) {
         state.contexts = contexts.map(function (context) { return context.appId; });
-        var inFront = watch.otherInFront(contexts, runningPids(), settings.homeId, settings.launcherId);
-        if (inFront !== undefined) { state.otherVisible = inFront; done(state); return; }
+        var running = runningPids();
+        function finish() {
+          art.waiting = function () {
+            state.artMode = watch.artMode(art.status, watch.artInFront(contexts, running));
+            done(state);
+          };
+          if (art.finished) art.waiting();
+        }
+        var inFront = watch.otherInFront(contexts, running, settings.homeId, settings.launcherId);
+        if (inFront !== undefined) { state.otherVisible = inFront; finish(); return; }
         // Fallback when the cgroup is unreadable: REST `visible`, reported by some store apps only.
         var own = settings.launcherId.split('.')[0] + '.';
         var store = state.contexts.filter(function (id, index, all) {
           return /^[A-Za-z0-9]{10}\./.test(id) && id.indexOf(own) !== 0 && all.indexOf(id) === index;
         });
-        anyVisible(store, function (visible) { state.otherVisible = visible; done(state); });
+        anyVisible(store, function (visible) { state.otherVisible = visible; finish(); });
       }
       try { tizen.application.getAppsContext(withContexts, function () { done(state); }); }
       catch (error) { done(state); }

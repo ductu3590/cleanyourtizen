@@ -184,7 +184,7 @@ def build(config, destination, wallpapers=None):
         for item in files:
             shutil.copyfile(item, destination / 'wallpapers' / item.name)
     (destination / 'service').mkdir()
-    for name in ('service.js', 'watch.js'):
+    for name in ('service.js', 'watch.js', 'artstatus.js'):
         shutil.copyfile(ROOT / 'launcher' / 'service' / name, destination / 'service' / name)
     (destination / 'service' / 'config.json').write_text(json.dumps(settings, indent=2) + '\n', encoding='utf-8')
     (destination / 'config.xml').write_text(widget_manifest(config), encoding='utf-8')
